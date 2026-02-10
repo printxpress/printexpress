@@ -1,0 +1,80 @@
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { useAppContext } from "../../context/AppContext";
+import toast from "react-hot-toast";
+
+const SellerLayout = () => {
+
+    const { axios, navigate } = useAppContext();
+
+    const sidebarLinks = [
+        { name: "Dashboard", path: "/seller", icon: "🏠" },
+        { name: "POS Mode", path: "/seller/pos", icon: "📟" },
+        { name: "Print Orders", path: "/seller/orders", icon: "🖨️" },
+        { name: "Print Services", path: "/seller/services", icon: "📄" },
+        { name: "Pricing Rules", path: "/seller/pricing", icon: "💰" },
+        { name: "Coupons", path: "/seller/coupons", icon: "🎟️" },
+        { name: "Wallet", path: "/seller/wallet", icon: "🪙" },
+        { name: "Customers", path: "/seller/customers", icon: "👥" },
+        { name: "Delivery Zones", path: "/seller/delivery", icon: "🚚" },
+        { name: "Store Settings", path: "/seller/settings", icon: "⚙️" },
+        { name: "Analytics", path: "/seller/analytics", icon: "📊" },
+    ];
+
+    const logout = async () => {
+        try {
+            const { data } = await axios.get('/api/seller/logout');
+            if (data.success) {
+                toast.success(data.message)
+                navigate('/')
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
+    return (
+        <div className="flex flex-col min-h-screen bg-slate-50">
+            {/* Admin Header */}
+            <div className="flex items-center justify-between px-8 py-4 bg-white border-b border-border sticky top-0 z-50">
+                <Link to='/' className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">P</div>
+                    <span className="font-outfit font-bold text-xl">Admin <span className="text-primary italic">Panel</span></span>
+                </Link>
+                <div className="flex items-center gap-6">
+                    <div className="text-right hidden sm:block">
+                        <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Logged in as</p>
+                        <p className="text-sm font-bold">Print Admin</p>
+                    </div>
+                    <button onClick={logout} className='btn-outline py-2 px-6 text-xs'>Sign Out</button>
+                </div>
+            </div>
+
+            <div className="flex flex-1">
+                {/* Sidebar */}
+                <div className="w-20 md:w-64 bg-white border-r border-border py-8 flex flex-col gap-2">
+                    {sidebarLinks.map((item) => (
+                        <NavLink to={item.path} key={item.name}
+                            className={({ isActive }) => `flex items-center py-4 px-6 gap-4 transition-all
+                            ${isActive ? "bg-primary/10 text-primary border-r-4 border-primary"
+                                    : "text-text-muted hover:bg-slate-50 hover:text-text-main"
+                                }`
+                            }
+                        >
+                            <span className="text-2xl">{item.icon}</span>
+                            <p className="md:block hidden font-medium">{item.name}</p>
+                        </NavLink>
+                    ))}
+                </div>
+
+                {/* Content Area */}
+                <div className="flex-1 p-8 overflow-y-auto max-h-[calc(100vh-73px)]">
+                    <Outlet />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default SellerLayout;

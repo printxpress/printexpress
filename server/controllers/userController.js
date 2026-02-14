@@ -36,25 +36,6 @@ export const verifyOtp = async (req, res) => {
 
         if (!phone || !otp) return res.json({ success: false, message: 'Phone and OTP are required' });
 
-        // EMERGENCY MOCK MODE: Check if DB is connected
-        if (global.isDbConnected === false) {
-            console.log('⚠️  Using Mock User (DB Disconnected)');
-            // Return mock user token
-            const mockUser = { _id: 'mock_user_id', phone, name: name || 'Mock User', role: 'customer' };
-            const token = jwt.sign({ id: mockUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-            res.cookie('token', token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-            });
-
-            const isProfileComplete = !!(mockUser.name && mockUser.email);
-
-            return res.json({ success: true, user: { phone: mockUser.phone, name: mockUser.name, role: mockUser.role }, isProfileComplete });
-        }
-
         // DEMO MODE: Accept any OTP (bypass verification)
         // logic is implicitly bypassed as we don't check otpStore here
 

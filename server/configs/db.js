@@ -76,12 +76,11 @@ const connectDB = async () => {
 
         // ... (rest of connection logic)
         const uri = process.env.MONGODB_URI;
-        if (!uri || uri.includes('abc:abc')) {
-            console.log('⚠️  MONGODB_URI is missing or default. Falling back to local MongoDB.');
+        if (!uri) {
+            console.log('⚠️  MONGODB_URI is missing. Falling back to local MongoDB.');
             await mongoose.connect('mongodb://localhost:27017/print-express');
         } else {
             console.log('ℹ️  connecting to remote MongoDB...');
-            const cleanUri = uri.endsWith('/') ? uri.slice(0, -1) : uri;
 
             // Connection Options for better stability
             const options = {
@@ -89,11 +88,10 @@ const connectDB = async () => {
                 socketTimeoutMS: 45000,
             };
 
-            await mongoose.connect(`${cleanUri}/print-express`, options);
+            await mongoose.connect(uri, options);
         }
     } catch (error) {
         console.error('\n❌ Database Connection Error:', error.message);
-        console.log('⚠️  Switching to Emergency Mock Mode');
         global.isDbConnected = false;
     }
 }

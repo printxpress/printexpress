@@ -63,6 +63,7 @@ const connectDB = async () => {
             console.log('╚══════════════════════════════════════╝\n');
             await seedStaffUsers();
             await seedServices();
+            global.isDbConnected = true;
         });
 
         mongoose.connection.on('error', (err) => {
@@ -92,6 +93,8 @@ const connectDB = async () => {
         }
     } catch (error) {
         console.error('\n❌ Database Connection Error:', error.message);
+        console.log('⚠️  Switching to Emergency Mock Mode');
+        global.isDbConnected = false;
     }
 }
 

@@ -7,6 +7,31 @@ export const sellerLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // EMERGENCY MOCK MODE: Check if DB is connected
+        if (global.isDbConnected === false) {
+            console.log('⚠️  Using Mock Staff Login (DB Disconnected)');
+
+            let mockUser = null;
+            if (email === 'admin@printexpress.com' && password === 'Anbu@24') {
+                mockUser = { _id: 'mock_admin_id', role: 'admin', email };
+            } else if (email === 'billing@printexpress.com' && password === 'Billing@123') {
+                mockUser = { _id: 'mock_billing_id', role: 'billing_manager', email };
+            }
+
+            if (mockUser) {
+                const token = jwt.sign({ id: mockUser._id, role: mockUser.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+                res.cookie('sellerToken', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                });
+                return res.json({ success: true, message: "Logged In (Mock Mode)", role: mockUser.role });
+            } else {
+                return res.json({ success: false, message: "Invalid credentials (Mock Mode)" });
+            }
+        }
+
         // Find user by email (or phone/name if preferred, but email/staffId is standard)
         const user = await User.findOne({
             $or: [{ email: email }, { name: email }],

@@ -4,8 +4,7 @@ import {
     getTransactions,
     addCoins,
     deductCoins,
-    getAllWallets,
-    createRechargeSession
+    getAllWallets
 } from '../controllers/walletController.js';
 import authUser from '../middlewares/authUser.js';
 
@@ -16,6 +15,4 @@ walletRouter.get('/transactions', authUser, getTransactions);
 walletRouter.post('/add', addCoins);
 walletRouter.post('/deduct', deductCoins);
 walletRouter.get('/all', getAllWallets);
-walletRouter.post('/recharge', authUser, createRechargeSession);
-
 export default walletRouter;

@@ -7,12 +7,7 @@ import Coupon from '../models/Coupon.js';
 // ... existing imports ...
 import { v2 as cloudinary } from 'cloudinary';
 import PDFDocument from 'pdfkit';
-import stripeModule from 'stripe';
 
-// Make Stripe optional - only initialize if API key is provided
-const stripe = process.env.STRIPE_SECRET_KEY
-    ? new stripeModule(process.env.STRIPE_SECRET_KEY)
-    : null;
 
 // Helper for Custom Page Counting
 const calculateCustomPageCount = (range) => {
@@ -344,42 +339,7 @@ export const updateOrderAndRecalculate = async (req, res) => {
 }
 
 // Generate Stripe Payment Link for Order Payment : /api/order/payment-link/:orderId
-export const generatePaymentLink = async (req, res) => {
-    try {
-        // Check if Stripe is configured
-        if (!stripe) {
-            return res.json({ success: false, message: "Payment gateway not configured. Please use alternative payment methods." });
-        }
 
-        const { orderId } = req.params;
-        const order = await Order.findById(orderId).populate('userId');
-        if (!order) return res.json({ success: false, message: "Order not found" });
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: order.files.map(file => ({
-                price_data: {
-                    currency: 'inr',
-                    product_data: {
-                        name: `Print Order: ${file.originalName.slice(0, 20)}`,
-                        description: `Printing ${order.printOptions.mode} | ${order.printOptions.side} | ${order.printOptions.binding}`,
-                    },
-                    unit_amount: Math.round(order.pricing.totalAmount * 100), // Note: This is hacky for multi-file, ideally split prices
-                },
-                quantity: 1,
-            })),
-            mode: 'payment',
-            success_url: `${process.env.CLIENT_URL}/my-orders?payment=success`,
-            cancel_url: `${process.env.CLIENT_URL}/my-orders?payment=failed`,
-            customer_email: order.userId?.email,
-            metadata: { orderId: order._id.toString() }
-        });
-
-        res.json({ success: true, paymentUrl: session.url });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-}
 
 // Generate Thermal Bill PDF : /api/order/thermal-bill/:orderId
 export const generateThermalBillPDF = async (req, res) => {
@@ -453,66 +413,4 @@ export const updateOrderStatus = async (req, res) => {
 }
 
 // Stripe Webhooks Handler : /api/order/webhook
-export const stripeWebhooks = async (req, res) => {
-    // Check if Stripe is configured
-    if (!stripe) {
-        return res.status(400).send('Stripe not configured');
-    }
 
-    const sig = req.headers['stripe-signature'];
-    let event;
-
-    try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-        console.error('Webhook Error:', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
-        const metadata = session.metadata;
-
-        if (metadata.type === 'recharge') {
-            // Handle Wallet Recharge
-            const { userId, amount } = metadata;
-            const wallet = await Wallet.findOne({ userId });
-            if (wallet) {
-                wallet.balance += parseFloat(amount);
-                wallet.transactions.push({
-                    type: 'credit',
-                    amount: parseFloat(amount),
-                    description: 'Wallet Recharge via Stripe',
-                    addedBy: 'user'
-                });
-                await wallet.save();
-                await User.findByIdAndUpdate(userId, { walletBalance: wallet.balance });
-                console.log(`[Stripe Webhook] Recharged ₹${amount} for user ${userId}`);
-            }
-        } else if (metadata.orderId) {
-            // Handle Order Payment
-            const orderId = metadata.orderId;
-            const order = await Order.findById(orderId);
-            if (order) {
-                order.payment.isPaid = true;
-                order.payment.transactionId = session.id;
-                await order.save();
-                console.log(`[Stripe Webhook] Payment successful for order ${orderId}`);
-            }
-        }
-    } else if (event.type === 'checkout.session.async_payment_failed' || event.type === 'checkout.session.expired') {
-        const session = event.data.object;
-        const metadata = session.metadata;
-
-        if (metadata.orderId) {
-            const order = await Order.findById(metadata.orderId);
-            if (order) {
-                order.status = 'failed';
-                await order.save();
-                console.log(`[Stripe Webhook] Payment failed or expired for order ${metadata.orderId}`);
-            }
-        }
-    }
-
-    res.json({ received: true });
-}

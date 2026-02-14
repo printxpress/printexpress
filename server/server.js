@@ -21,7 +21,7 @@ import shopRouter from './routes/shopRoute.js';
 import billingRouter from './routes/billingRoute.js';
 import systemRouter from './routes/systemRoute.js';
 import bannerRouter from './routes/bannerRoute.js';
-import { stripeWebhooks } from './controllers/orderController.js';
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -42,7 +42,7 @@ const allowedOrigins = [
     process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null
 ].filter(Boolean);
 
-app.post('/api/order/webhook', express.raw({ type: 'application/json' }), stripeWebhooks)
+
 
 // Middleware configuration
 app.use(express.json());

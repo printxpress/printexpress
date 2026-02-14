@@ -1,11 +1,6 @@
 import Wallet from '../models/Wallet.js';
 import User from '../models/User.js';
-import stripeModule from 'stripe';
 
-// Make Stripe optional - only initialize if API key is provided
-const stripe = process.env.STRIPE_SECRET_KEY
-    ? new stripeModule(process.env.STRIPE_SECRET_KEY)
-    : null;
 
 // Get wallet balance : GET /api/wallet/balance
 export const getBalance = async (req, res) => {
@@ -102,41 +97,4 @@ export const getAllWallets = async (req, res) => {
 };
 
 // Create Wallet Recharge Session : POST /api/wallet/recharge
-export const createRechargeSession = async (req, res) => {
-    try {
-        // Check if Stripe is configured
-        if (!stripe) {
-            return res.json({ success: false, message: "Payment gateway not configured. Please contact admin." });
-        }
 
-        const { amount } = req.body;
-        const userId = req.userId;
-        const user = await User.findById(userId);
-
-        if (!amount || amount < 10) return res.json({ success: false, message: 'Minimum recharge amount is ₹10' });
-
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-                price_data: {
-                    currency: 'inr',
-                    product_data: {
-                        name: 'Wallet Recharge',
-                        description: `Adding ₹${amount} to your Print Express wallet`,
-                    },
-                    unit_amount: Math.round(amount * 100),
-                },
-                quantity: 1,
-            }],
-            mode: 'payment',
-            success_url: `${process.env.CLIENT_URL}/profile?recharge=success`,
-            cancel_url: `${process.env.CLIENT_URL}/profile?recharge=cancelled`,
-            customer_email: user.email,
-            metadata: { userId, amount: amount.toString(), type: 'recharge' }
-        });
-
-        res.json({ success: true, sessionUrl: session.url });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-}

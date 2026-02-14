@@ -7,9 +7,7 @@ import {
     createPosOrder,
     cleanupOldFiles,
     updateOrderAndRecalculate,
-    generatePaymentLink,
-    generateThermalBillPDF,
-    stripeWebhooks
+    generateThermalBillPDF
 } from '../controllers/orderController.js';
 import authUser from '../middlewares/authUser.js';
 import authSeller from '../middlewares/authSeller.js';
@@ -23,7 +21,6 @@ orderRouter.post('/pos', authSeller, createPosOrder);
 orderRouter.get('/all', authSeller, getAllOrders);
 orderRouter.post('/update-status', authSeller, updateOrderStatus);
 orderRouter.post('/edit/:orderId', authSeller, updateOrderAndRecalculate);
-orderRouter.post('/payment-link/:orderId', authSeller, generatePaymentLink);
 orderRouter.get('/thermal-bill/:orderId', generateThermalBillPDF);
 orderRouter.delete('/cleanup', authSeller, cleanupOldFiles);
 

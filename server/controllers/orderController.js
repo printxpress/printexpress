@@ -170,8 +170,10 @@ export const placePrintOrder = async (req, res) => {
 
     } catch (error) {
         console.log("--- ERROR PLACING ORDER ---");
-        console.log("Error Message:", error.message);
-        console.log("Error Stack:", error.stack);
+        console.log("Request Body Data:", req.body.data);
+        console.log("Raw Error Object:", error);
+        console.log("Error Message:", error?.message);
+        console.log("Error Stack:", error?.stack);
 
         // Return a more descriptive error if possible
         return res.json({ success: false, message: error.message || "Failed to place order" });

@@ -52,7 +52,48 @@ const Profile = () => {
             toast.success("Wallet recharged successfully!");
             window.history.replaceState({}, document.title, window.location.pathname);
         }
+
+        if (urlParams.get('edit') === 'true') {
+            setIsEditing(true);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        if (urlParams.get('edit') === 'true') {
+            setIsEditing(true);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
     }, [user, setShowUserLogin]);
+
+    // Auto-detect City/State from Pincode
+    useEffect(() => {
+        if (formData.address.pincode.length === 6) {
+            const fetchPincodeDetails = async () => {
+                try {
+                    const response = await fetch(`https://api.postalpincode.in/pincode/${formData.address.pincode}`);
+                    const data = await response.json();
+                    if (data[0].Status === "Success") {
+                        const details = data[0].PostOffice[0];
+                        setFormData(prev => ({
+                            ...prev,
+                            address: {
+                                ...prev.address,
+                                city: details.District,
+                                state: details.State,
+                                country: 'India'
+                            }
+                        }));
+                        toast.success("Location detected! 📍");
+                        setErrors(prev => ({ ...prev, pincode: null }));
+                    } else {
+                        toast.error("Invalid Pincode");
+                        setErrors(prev => ({ ...prev, pincode: "Invalid Pincode" }));
+                    }
+                } catch (error) {
+                    console.error("Pincode fetch error:", error);
+                }
+            };
+            fetchPincodeDetails();
+        }
+    }, [formData.address.pincode]);
 
     const fetchQueries = async () => {
         try {
@@ -251,7 +292,7 @@ const Profile = () => {
                                     {errors.name && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.name}</p>}
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">DIGITAL EMAIL POINTER</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">EMAIL ADDRESS</label>
                                     <input
                                         aria-label="Email"
                                         value={formData.email}
@@ -264,13 +305,13 @@ const Profile = () => {
 
                                 <div className="md:col-span-2 border-t border-slate-100 pt-6 mt-2">
                                     <p className="text-xs font-black text-blue-600 mb-6 flex items-center gap-2">
-                                        📦 Logistics Geo-Data Setup
+                                        📦 Delivery Address
                                         <span title="Required for calculating accurate delivery rates" className="cursor-help w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[8px]">?</span>
                                     </p>
                                 </div>
 
                                 <div className="md:col-span-2 space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">STREET ADDRESS / BUILDING</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">FLAT / HOUSE NO / BUILDING</label>
                                     <input
                                         value={formData.address.line1}
                                         onChange={e => setFormData({ ...formData, address: { ...formData.address, line1: e.target.value } })}
@@ -280,18 +321,19 @@ const Profile = () => {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">POSTAL PINCODE</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PINCODE</label>
                                     <input
                                         value={formData.address.pincode}
                                         onChange={e => setFormData({ ...formData, address: { ...formData.address, pincode: e.target.value } })}
                                         className={`input-field ${errors.pincode ? 'border-red-400 bg-red-50/30' : ''}`}
                                         placeholder="600001"
+                                        maxLength={6}
                                     />
                                     {errors.pincode && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.pincode}</p>}
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LOCALITY LANDMARK</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">LANDMARK (OPTIONAL)</label>
                                     <input
                                         value={formData.address.landmark}
                                         onChange={e => setFormData({ ...formData, address: { ...formData.address, landmark: e.target.value } })}
@@ -301,22 +343,22 @@ const Profile = () => {
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CITY / TOWNSHIP</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CITY / DISTRICT</label>
                                     <input
                                         value={formData.address.city}
                                         onChange={e => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
                                         className={`input-field ${errors.city ? 'border-red-400 bg-red-50/30' : ''}`}
-                                        placeholder="Mumbai/New York"
+                                        placeholder="Chennai"
                                     />
                                 </div>
 
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">STATE / PROVINCE</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">STATE</label>
                                     <input
                                         value={formData.address.state}
                                         onChange={e => setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })}
                                         className={`input-field ${errors.state ? 'border-red-400 bg-red-50/30' : ''}`}
-                                        placeholder="Maharashtra"
+                                        placeholder="Tamil Nadu"
                                     />
                                 </div>
 
@@ -326,7 +368,7 @@ const Profile = () => {
                                         disabled={loading}
                                         className="flex-1 py-4 bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-100/50 hover:bg-black transition-all"
                                     >
-                                        {loading ? 'Encrypting Data...' : 'SECURE CONFIGURATION 🛡️'}
+                                        {loading ? 'Saving Details...' : 'SAVE DETAILS 🛡️'}
                                     </button>
                                     <button
                                         type="button"

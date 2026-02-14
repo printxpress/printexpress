@@ -50,7 +50,9 @@ export const verifyOtp = async (req, res) => {
                 maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 
-            return res.json({ success: true, user: { phone: mockUser.phone, name: mockUser.name, role: mockUser.role } });
+            const isProfileComplete = !!(mockUser.name && mockUser.email);
+
+            return res.json({ success: true, user: { phone: mockUser.phone, name: mockUser.name, role: mockUser.role }, isProfileComplete });
         }
 
         // DEMO MODE: Accept any OTP (bypass verification)
@@ -72,7 +74,9 @@ export const verifyOtp = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.json({ success: true, user: { phone: user.phone, name: user.name, role: user.role } });
+        const isProfileComplete = !!(user.name && user.email);
+
+        return res.json({ success: true, user: { phone: user.phone, name: user.name, role: user.role }, isProfileComplete });
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message });

@@ -76,6 +76,13 @@ const Login = () => {
                 setUser(data.user);
                 setShowUserLogin(false);
                 toast.success(isRegister ? 'Registered successfully' : 'Logged in successfully');
+
+                if (!data.isProfileComplete) {
+                    setTimeout(() => {
+                        toast('Please complete your profile details', { icon: '📝' });
+                        navigate('/profile?edit=true');
+                    }, 500);
+                }
             } else {
                 toast.error(data.message);
             }

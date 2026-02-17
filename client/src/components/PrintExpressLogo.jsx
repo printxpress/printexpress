@@ -13,15 +13,12 @@ const PrintExpressLogo = ({ className = "h-10", variant = "full" }) => {
     }
 
     return (
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-4 ${className}`}>
             <img
                 src={logo}
                 alt="Print Express"
-                className="h-9 md:h-10 object-contain hover:scale-105 transition-transform cursor-pointer"
+                className="h-20 md:h-28 object-contain animate-in fade-in zoom-in duration-1000 hover:scale-105 transition-transform cursor-pointer"
             />
-            <span className="font-outfit font-bold text-lg md:text-xl text-slate-900">
-                Print <span className="text-primary">Express</span>
-            </span>
         </div>
     );
 };

@@ -206,22 +206,23 @@ const PrintPage = () => {
         if (options.binding === 'Spiral') bindWeight = 0.1 * (options.bindingQuantity || 1);
         else if (options.binding === 'Chart') bindWeight = 0.05 * (options.bindingQuantity || 1);
 
-        const totalSheets = billingSheets * options.copies;
-        const calcWeight = (totalSheets * 5 / 1000) + bindWeight;
+        const totalSheets = billingSheets * (options.copies || 1);
 
-        // Tiered Delivery Logic (Dynamic from DB)
-        // Tiered Delivery Logic (Dynamic from DB)
-        if (fulfillment === 'delivery' && hasValidPincode && rules.delivery_tiers) {
-            const tiers = rules.delivery_tiers;
-            let rule = tiers.tier_c; // Default to highest tier
+        // Weight Calculation: 1 kg per 200 sheets (rounded up)
+        const calcWeight = Math.ceil(totalSheets / 200) + Math.ceil(bindWeight);
 
-            if (calcWeight <= tiers.tier_a.maxWeight) {
-                rule = tiers.tier_a;
-            } else if (calcWeight <= tiers.tier_b.maxWeight) {
-                rule = tiers.tier_b;
+        // New Delivery Charge Logic (Tamil Nadu / General)
+        if (fulfillment === 'delivery' && hasValidPincode) {
+            if (calcWeight <= 3) {
+                // Tier 1: <= 3kg -> ₹35 per kg, No Slip
+                deliveryCharge = 35 * calcWeight;
+            } else if (calcWeight <= 10) {
+                // Tier 2: 4-10kg -> ₹29 per kg + ₹20 Slip
+                deliveryCharge = (29 * calcWeight) + 20;
+            } else {
+                // Tier 3: > 10kg -> ₹26 per kg + ₹20 Slip
+                deliveryCharge = (26 * calcWeight) + 20;
             }
-
-            deliveryCharge = (Number(rule.rate || 0) * calcWeight) + (Number(rule.slip || 0));
         }
 
         const subtotal = printCharge + bindCharge + deliveryCharge;
@@ -736,7 +737,7 @@ const PrintPage = () => {
                                                 <span className={`font-bold text-sm ${options.pagesPerSheet === 2 ? 'text-green-800' : 'text-gray-700'}`}>Money Saver</span>
                                                 {options.pagesPerSheet === 2 && <span className="text-green-600 text-lg">✓</span>}
                                             </div>
-                                            <p className="text-[10px] text-text-muted leading-tight">2 pages per side. Eco-friendly & Cost effective.</p>
+                                            <p className="text-[10px] text-text-muted leading-tight">2 pages per side. Suitable for Materials.</p>
                                         </button>
                                     </div>
                                 </div>

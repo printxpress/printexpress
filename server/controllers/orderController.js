@@ -121,20 +121,22 @@ export const placePrintOrder = async (req, res) => {
         }
 
         const totalSheets = billingSheets * (printOptions.copies || 1);
-        const calcWeight = (totalSheets * 5 / 1000) + bindingWeight;
+
+        // Weight Calculation: 1 kg per 200 sheets (rounded up)
+        const calcWeight = Math.ceil(totalSheets / 200) + Math.ceil(bindingWeight);
 
         let deliveryCharge = 0;
         if (fulfillment.method === 'delivery') {
-            const tiers = rules.delivery_tiers;
-            let rule = tiers.tier_c; // Default to highest tier
-
-            if (calcWeight <= tiers.tier_a.maxWeight) {
-                rule = tiers.tier_a;
-            } else if (calcWeight <= tiers.tier_b.maxWeight) {
-                rule = tiers.tier_b;
+            if (calcWeight <= 3) {
+                // Tier 1: <= 3kg -> ₹35 per kg, No Slip
+                deliveryCharge = 35 * calcWeight;
+            } else if (calcWeight <= 10) {
+                // Tier 2: 4-10kg -> ₹29 per kg + ₹20 Slip
+                deliveryCharge = (29 * calcWeight) + 20;
+            } else {
+                // Tier 3: > 10kg -> ₹26 per kg + ₹20 Slip
+                deliveryCharge = (26 * calcWeight) + 20;
             }
-
-            deliveryCharge = (Number(rule.rate || 0) * calcWeight) + Number(rule.slip || 0);
         }
 
         // Final Total calculated server-side to prevent tampering

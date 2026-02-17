@@ -23,7 +23,8 @@ const PrintPage = () => {
         bindingQuantity: 1,
         pageRangeType: 'All', // 'All' or 'Custom'
         customPages: '', // e.g., '1-5, 10, 12-15'
-        notes: ''
+        notes: '',
+        pagesPerSheet: 1 // 1 or 2
     });
     const [step, setStep] = useState(1);
 
@@ -75,6 +76,7 @@ const PrintPage = () => {
     const [processingFiles, setProcessingFiles] = useState(false);
     const [pincodeLoading, setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState('');
+    const [isEditingAddress, setIsEditingAddress] = useState(false); // To toggle address edit mode
 
     const [rules, setRules] = useState({
         printing: {
@@ -111,6 +113,26 @@ const PrintPage = () => {
         fetchData();
     }, [user]);
 
+    // Auto-fill address from user profile
+    useEffect(() => {
+        if (user && user.address && fulfillment === 'delivery') {
+            setDelivery(prev => ({
+                ...prev,
+                pincode: user.address.pincode || prev.pincode,
+                address: user.address.line1 || prev.address,
+                district: user.address.city || prev.district,
+                state: user.address.state || prev.state,
+                landmark: user.address.landmark || prev.landmark,
+                phone: user.phone || prev.phone
+            }));
+            // If address exists, default to 'view' mode (not editing)
+            if (user.address.line1) setIsEditingAddress(false);
+            else setIsEditingAddress(true);
+        } else {
+            setIsEditingAddress(true);
+        }
+    }, [user, fulfillment]);
+
     const calculateCustomPageCount = (range) => {
         if (!range) return 0;
         const parts = range.split(',').map(p => p.trim());
@@ -132,7 +154,9 @@ const PrintPage = () => {
     useEffect(() => {
         const docPages = fileMetadata.reduce((sum, meta) => sum + (meta.pageCount || 0), 0);
         const totalPages = options.pageRangeType === 'All' ? docPages : calculateCustomPageCount(options.customPages);
-        const actualPageVolume = totalPages * options.copies;
+
+        // Effective pages considering 'Times per sheet' (1 or 2)
+        const effectivePages = options.pagesPerSheet === 2 ? Math.ceil(totalPages / 2) : totalPages;
 
         const isColor = options.mode === 'Color';
         const isDouble = options.side === 'Double';
@@ -163,8 +187,8 @@ const PrintPage = () => {
             }
         }
 
-        const printingCharge = totalPages * rate * options.copies;
-        const billingSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
+        const printingCharge = effectivePages * rate * options.copies;
+        const billingSheets = isDouble ? Math.ceil(effectivePages / 2) : effectivePages;
         const printCharge = printingCharge;
 
         let bindBase = 0;
@@ -682,11 +706,39 @@ const PrintPage = () => {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-text-muted">Page Layout</label>
-                                    <select value={options.layout} onChange={(e) => setOptions({ ...options, layout: e.target.value })} className="input-field">
-                                        <option value="Full">Full Page</option>
-                                        <option value="1/2">1/2 Page on single sheet</option>
-                                    </select>
+                                    <label className="text-sm font-semibold text-text-muted">Pages per Sheet</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setOptions({ ...options, pagesPerSheet: 1 })}
+                                            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left group ${options.pagesPerSheet === 1
+                                                ? 'bg-blue-50 border-blue-600'
+                                                : 'bg-white border-border hover:border-blue-300'
+                                                }`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className={`font-bold text-sm ${options.pagesPerSheet === 1 ? 'text-blue-800' : 'text-gray-700'}`}>Standard</span>
+                                                {options.pagesPerSheet === 1 && <span className="text-blue-600 text-lg">✓</span>}
+                                            </div>
+                                            <p className="text-[10px] text-text-muted leading-tight">1 page per side. Best for readability.</p>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setOptions({ ...options, pagesPerSheet: 2 })}
+                                            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left group relative overflow-hidden ${options.pagesPerSheet === 2
+                                                ? 'bg-green-50 border-green-600'
+                                                : 'bg-white border-border hover:border-green-300'
+                                                }`}
+                                        >
+                                            <div className="absolute top-0 right-0 bg-green-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                                SAVE 50%
+                                            </div>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className={`font-bold text-sm ${options.pagesPerSheet === 2 ? 'text-green-800' : 'text-gray-700'}`}>Money Saver</span>
+                                                {options.pagesPerSheet === 2 && <span className="text-green-600 text-lg">✓</span>}
+                                            </div>
+                                            <p className="text-[10px] text-text-muted leading-tight">2 pages per side. Eco-friendly & Cost effective.</p>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-text-muted">Copies</label>
@@ -814,158 +866,253 @@ const PrintPage = () => {
                                 <div className="grid grid-cols-1 gap-4 pt-2">
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-text-muted">SHIPPING PINCODE</label>
-                                        <div className="relative">
-                                            <input
-                                                value={delivery.pincode}
-                                                onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                placeholder="641001"
-                                                className={`input-field pr-10 ${pincodeError ? 'border-red-400' : delivery.district ? 'border-green-400' : ''}`}
-                                                maxLength={6}
-                                                inputMode="numeric"
-                                            />
-                                            {pincodeLoading && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        {/* Address Management UI */}
+                                        {fulfillment === 'delivery' && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                {/* Saved Address View */}
+                                                {!isEditingAddress && user?.address ? (
+                                                    <div className="p-4 border-2 border-green-100 bg-green-50/50 rounded-2xl flex items-start justify-between">
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-green-900">📍 Delivery Address</h4>
+                                                                <span className="text-[10px] bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Verified</span>
+                                                            </div>
+                                                            <p className="text-sm text-green-800 font-medium leading-relaxed">
+                                                                {delivery.address}<br />
+                                                                {delivery.landmark && <span className="text-xs opacity-75">Near {delivery.landmark}<br /></span>}
+                                                                {delivery.district}, {delivery.state} - <strong>{delivery.pincode}</strong>
+                                                            </p>
+                                                            <p className="text-xs text-green-700 font-bold mt-1">📞 {delivery.phone}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setIsEditingAddress(true)}
+                                                            className="text-xs font-bold text-blue-600 hover:text-blue-800 underline bg-white px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
+                                                        >
+                                                            Edit Address
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    /* Edit Address Form */
+                                                    <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 relative">
+                                                        {user?.address && (
+                                                            <button
+                                                                onClick={() => setIsEditingAddress(false)}
+                                                                className="absolute top-4 right-4 text-[10px] font-bold text-slate-500 hover:text-slate-800 border-b border-slate-300"
+                                                            >
+                                                                Cancel Editing
+                                                            </button>
+                                                        )}
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-semibold text-text-muted">Shipping Pincode</label>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="text"
+                                                                    value={delivery.pincode}
+                                                                    onChange={(e) => handlePincodeChange(e.target.value)}
+                                                                    maxLength={6}
+                                                                    placeholder="6-digit Pincode"
+                                                                    className={`input-field pr-10 tracking-widest ${pincodeError ? 'border-red-500 focus:ring-red-200' : ''}`}
+                                                                />
+                                                                {pincodeLoading && <span className="absolute right-3 top-3.5 text-xs animate-spin">⌛</span>}
+                                                                {!pincodeLoading && delivery.pincode.length === 6 && !pincodeError && (
+                                                                    <span className="absolute right-3 top-3.5 text-green-500 text-lg">✓</span>
+                                                                )}
+                                                            </div>
+                                                            {pincodeError && <span className="text-xs text-red-500 font-medium">{pincodeError}</span>}
+                                                            {(delivery.district || delivery.state) && (
+                                                                <p className="text-xs text-green-600 font-bold flex items-center gap-1">
+                                                                    📍 {delivery.district}, {delivery.state}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-2 col-span-2">
+                                                                <label className="text-sm font-semibold text-text-muted">Full Address</label>
+                                                                <textarea
+                                                                    value={delivery.address}
+                                                                    onChange={(e) => setDelivery(prev => ({ ...prev, address: e.target.value }))}
+                                                                    placeholder="House No, Street Name, Area..."
+                                                                    className="input-field h-20 resize-none"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2 col-span-2">
+                                                                <label className="text-sm font-semibold text-text-muted">Landmark (Optional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={delivery.landmark}
+                                                                    onChange={(e) => setDelivery(prev => ({ ...prev, landmark: e.target.value }))}
+                                                                    placeholder="Near bus stop, temple, etc."
+                                                                    className="input-field"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2 col-span-2">
+                                                                <label className="text-sm font-semibold text-text-muted">Phone Number</label>
+                                                                <input
+                                                                    type="tel"
+                                                                    value={delivery.phone}
+                                                                    onChange={(e) => setDelivery(prev => ({ ...prev, phone: e.target.value }))}
+                                                                    maxLength={10}
+                                                                    placeholder="+91 9876543210"
+                                                                    className="input-field"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Save Address Option */}
+                                                        {user && (
+                                                            <div className="flex items-center gap-3 pt-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id="saveAddress"
+                                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                                    onChange={async (e) => {
+                                                                        if (e.target.checked) {
+                                                                            // Validation
+                                                                            if (!delivery.pincode || !delivery.address || !delivery.district) {
+                                                                                toast.error("Please fill all details to save");
+                                                                                e.target.checked = false;
+                                                                                return;
+                                                                            }
+                                                                            const loadToast = toast.loading("Saving to profile...");
+                                                                            try {
+                                                                                const res = await axios.put('/api/user/update-profile', {
+                                                                                    address: {
+                                                                                        line1: delivery.address,
+                                                                                        pincode: delivery.pincode,
+                                                                                        city: delivery.district,
+                                                                                        state: delivery.state,
+                                                                                        landmark: delivery.landmark
+                                                                                    }
+                                                                                });
+                                                                                if (res.data.success) {
+                                                                                    toast.success("Address Saved to Profile! 💾");
+                                                                                } else {
+                                                                                    toast.error(res.data.message);
+                                                                                }
+                                                                            } catch (err) {
+                                                                                toast.error("Failed to save address");
+                                                                            } finally {
+                                                                                toast.dismiss(loadToast);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <label htmlFor="saveAddress" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                                                                    Save this address to my profile
+                                                                </label>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Static Phone Input for Pickup/Layout placeholder (Hidden if Delivery) */}
+                                        {fulfillment === 'pickup' && (
+                                            <div className="bg-green-50 p-5 rounded-xl border border-green-200 space-y-2">
+                                                <p className="font-bold text-green-800">📍 Pickup Location</p>
+                                                <p className="text-sm text-green-700">Print Express Store</p>
+                                                <p className="text-xs text-green-600">Coimbatore, Tamil Nadu</p>
+                                                <p className="text-xs text-text-muted mt-2">You will receive a notification when your order is ready for pickup.</p>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-4 pt-4">
+                                            <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
+                                            <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next Step →</button>
+                                        </div>
+                                    </div>
+                    )}
+
+                                    {/* 4. Payment Method */}
+                                    {step === 4 && (
+                                        <div className="card-premium space-y-6 border-2 border-blue-100">
+                                            <h3 className="text-xl font-bold font-outfit flex items-center gap-2">
+                                                <span className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-full flex items-center justify-center text-sm">4</span>
+                                                Payment Method
+                                            </h3>
+
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                {[
+                                                    { id: 'COD', icon: '💵', label: 'Cash on Delivery', desc: 'Pay when you receive' },
+                                                    { id: 'UPI', icon: '📱', label: 'UPI Payment', desc: 'Google Pay, PhonePe' },
+                                                    { id: 'Wallet', icon: '🪙', label: 'Wallet', desc: `Balance: ₹${walletBalance}` },
+                                                    { id: 'UPI+Wallet', icon: '💳', label: 'UPI + Wallet', desc: 'Split payment' },
+                                                ].map(pm => (
+                                                    <button
+                                                        key={pm.id}
+                                                        onClick={() => {
+                                                            setPaymentMethod(pm.id);
+                                                            if (pm.id === 'Wallet' || pm.id === 'UPI+Wallet') setUseWallet(true);
+                                                            else setUseWallet(false);
+                                                        }}
+                                                        disabled={pm.id === 'Wallet' && walletBalance <= 0}
+                                                        className={`p-4 rounded-xl border-2 transition-all text-left space-y-1 ${paymentMethod === pm.id
+                                                            ? 'border-blue-600 bg-blue-50 shadow-md'
+                                                            : 'border-border hover:border-blue-300'
+                                                            } ${pm.id === 'Wallet' && walletBalance <= 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <span className="text-2xl">{pm.icon}</span>
+                                                        <p className="font-bold text-sm">{pm.label}</p>
+                                                        <p className="text-[10px] text-text-muted">{pm.desc}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Wallet Balance Info */}
+                                            {useWallet && walletBalance > 0 && (
+                                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">🪙</span>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-amber-800">Wallet Coins</p>
+                                                            <p className="text-xs text-amber-600">Available: ₹{walletBalance}</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-lg font-bold text-green-600">-₹{pricing.walletUsed}</p>
                                                 </div>
                                             )}
-                                            {delivery.district && !pincodeLoading && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600 text-lg">✓</div>
-                                            )}
-                                        </div>
-                                        {pincodeError && <p className="text-xs text-red-500">{pincodeError}</p>}
-                                        {delivery.district && (
-                                            <p className="text-xs text-green-600 font-medium">📍 {delivery.district}, {delivery.state}</p>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-text-muted">DISTRICT</label>
-                                            <input value={delivery.district} readOnly placeholder="Auto-detected" className="input-field bg-slate-50 cursor-not-allowed" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-text-muted">STATE</label>
-                                            <input value={delivery.state} readOnly placeholder="Auto-detected" className="input-field bg-slate-50 cursor-not-allowed" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-text-muted">PHONE NUMBER</label>
-                                        <input value={delivery.phone} onChange={(e) => setDelivery({ ...delivery, phone: e.target.value })} placeholder="+91 9876543210" className="input-field" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-text-muted">FULL DELIVERY ADDRESS</label>
-                                        <textarea value={delivery.address} onChange={(e) => setDelivery({ ...delivery, address: e.target.value })} placeholder="House No, Street Name, Area..." className="input-field h-24" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-text-muted">LANDMARK (Optional)</label>
-                                        <input value={delivery.landmark} onChange={(e) => setDelivery({ ...delivery, landmark: e.target.value })} placeholder="Near bus stop, temple, etc." className="input-field" />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="bg-green-50 p-5 rounded-xl border border-green-200 space-y-2">
-                                    <p className="font-bold text-green-800">📍 Pickup Location</p>
-                                    <p className="text-sm text-green-700">Print Express Store</p>
-                                    <p className="text-xs text-green-600">Coimbatore, Tamil Nadu</p>
-                                    <p className="text-xs text-text-muted mt-2">You will receive a notification when your order is ready for pickup.</p>
-                                </div>
-                            )}
-                            <div className="flex gap-4 pt-4">
-                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
-                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next Step →</button>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* 4. Payment Method */}
-                    {step === 4 && (
-                        <div className="card-premium space-y-6 border-2 border-blue-100">
-                            <h3 className="text-xl font-bold font-outfit flex items-center gap-2">
-                                <span className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-full flex items-center justify-center text-sm">4</span>
-                                Payment Method
-                            </h3>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {[
-                                    { id: 'COD', icon: '💵', label: 'Cash on Delivery', desc: 'Pay when you receive' },
-                                    { id: 'UPI', icon: '📱', label: 'UPI Payment', desc: 'Google Pay, PhonePe' },
-                                    { id: 'Wallet', icon: '🪙', label: 'Wallet', desc: `Balance: ₹${walletBalance}` },
-                                    { id: 'UPI+Wallet', icon: '💳', label: 'UPI + Wallet', desc: 'Split payment' },
-                                ].map(pm => (
-                                    <button
-                                        key={pm.id}
-                                        onClick={() => {
-                                            setPaymentMethod(pm.id);
-                                            if (pm.id === 'Wallet' || pm.id === 'UPI+Wallet') setUseWallet(true);
-                                            else setUseWallet(false);
-                                        }}
-                                        disabled={pm.id === 'Wallet' && walletBalance <= 0}
-                                        className={`p-4 rounded-xl border-2 transition-all text-left space-y-1 ${paymentMethod === pm.id
-                                            ? 'border-blue-600 bg-blue-50 shadow-md'
-                                            : 'border-border hover:border-blue-300'
-                                            } ${pm.id === 'Wallet' && walletBalance <= 0 ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                    >
-                                        <span className="text-2xl">{pm.icon}</span>
-                                        <p className="font-bold text-sm">{pm.label}</p>
-                                        <p className="text-[10px] text-text-muted">{pm.desc}</p>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Wallet Balance Info */}
-                            {useWallet && walletBalance > 0 && (
-                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">🪙</span>
-                                        <div>
-                                            <p className="font-bold text-sm text-amber-800">Wallet Coins</p>
-                                            <p className="text-xs text-amber-600">Available: ₹{walletBalance}</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-lg font-bold text-green-600">-₹{pricing.walletUsed}</p>
-                                </div>
-                            )}
-
-                            {/* Coupon Code */}
-                            <div className="space-y-3">
-                                <label className="text-sm font-semibold text-text-muted">🎟️ Have a Coupon Code?</label>
-                                {couponApplied ? (
-                                    <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-2xl">🎉</span>
-                                            <div>
-                                                <p className="font-bold text-green-800">{couponApplied.code}</p>
-                                                <p className="text-xs text-green-600">₹{couponApplied.discount} discount applied!</p>
+                                            {/* Coupon Code */}
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-semibold text-text-muted">🎟️ Have a Coupon Code?</label>
+                                                {couponApplied ? (
+                                                    <div className="bg-green-50 p-4 rounded-xl border border-green-200 flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-2xl">🎉</span>
+                                                            <div>
+                                                                <p className="font-bold text-green-800">{couponApplied.code}</p>
+                                                                <p className="text-xs text-green-600">₹{couponApplied.discount} discount applied!</p>
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={removeCoupon} className="text-red-500 text-xs font-bold hover:text-red-700">Remove</button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            value={couponCode}
+                                                            onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                                                            placeholder="Enter coupon code"
+                                                            className="input-field flex-1 font-mono uppercase"
+                                                        />
+                                                        <button
+                                                            onClick={handleApplyCoupon}
+                                                            disabled={couponLoading}
+                                                            className="btn-primary px-6 py-3 text-sm whitespace-nowrap"
+                                                        >
+                                                            {couponLoading ? '...' : 'Apply'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-4 pt-4">
+                                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
                                             </div>
                                         </div>
-                                        <button onClick={removeCoupon} className="text-red-500 text-xs font-bold hover:text-red-700">Remove</button>
-                                    </div>
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <input
-                                            value={couponCode}
-                                            onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                                            placeholder="Enter coupon code"
-                                            className="input-field flex-1 font-mono uppercase"
-                                        />
-                                        <button
-                                            onClick={handleApplyCoupon}
-                                            disabled={couponLoading}
-                                            className="btn-primary px-6 py-3 text-sm whitespace-nowrap"
-                                        >
-                                            {couponLoading ? '...' : 'Apply'}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex gap-4 pt-4">
-                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    )}
-                </div>
 
-            </div>
-        </div>
-    );
-};
-
-export default PrintPage;
+                export default PrintPage;

@@ -9,20 +9,19 @@ export const getPricing = async (req, res) => {
                 type: 'printing_rules',
                 rules: {
                     printing: {
-                        bw: { single: 2, double: 3 },
-                        color: { single: 10, double: 15 }
+                        bw: { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 },
+                        color: { single: 8, double: 8, a3_single: 20, a3_double: 20 }
                     },
                     additional: {
-                        binding: 50,
+                        binding: 15,
                         hard_binding: 200,
-                        chart_binding: 150,
+                        chart_binding: 10,
                         handling_fee: 10
                     },
                     delivery_tiers: {
-                        tier_a: 40,
-                        tier_b: 60,
-                        tier_c: 80,
-                        tier_d: 150
+                        tier_a: { maxWeight: 3, rate: 35, slip: 0 },
+                        tier_b: { maxWeight: 10, rate: 29, slip: 20 },
+                        tier_c: { maxWeight: 999, rate: 26, slip: 20 }
                     }
                 }
             });

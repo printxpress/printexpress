@@ -15,13 +15,13 @@ const PricingRules = () => {
                 // Ensure nesting exists even if DB is old or empty
                 const normalizedRules = {
                     printing: {
-                        bw: fetchedRules.printing?.bw || { single: 2, double: 3 },
-                        color: fetchedRules.printing?.color || { single: 10, double: 15 }
+                        bw: fetchedRules.printing?.bw || { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 },
+                        color: fetchedRules.printing?.color || { single: 8, double: 8, a3_single: 20, a3_double: 20 }
                     },
                     additional: {
-                        binding: fetchedRules.additional?.binding || 50,
+                        binding: fetchedRules.additional?.binding || 15,
                         hard_binding: fetchedRules.additional?.hard_binding || 200,
-                        chart_binding: fetchedRules.additional?.chart_binding || 150,
+                        chart_binding: fetchedRules.additional?.chart_binding || 10,
                         handling_fee: fetchedRules.additional?.handling_fee || 10
                     },
                     delivery: fetchedRules.delivery || 40,
@@ -70,19 +70,35 @@ const PricingRules = () => {
                     </h3>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-medium text-text-muted">Single Side</label>
+                            <label className="text-sm font-medium text-text-muted">Single Side (A4)</label>
                             <input
                                 value={rules.printing.bw.single}
                                 onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, bw: { ...rules.printing.bw, single: Number(e.target.value) } } })}
-                                type="number" className="input-field w-24 text-center py-2"
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
                             />
                         </div>
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-medium text-text-muted">Double Side</label>
+                            <label className="text-sm font-medium text-text-muted">Double Side (A4)</label>
                             <input
                                 value={rules.printing.bw.double}
                                 onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, bw: { ...rules.printing.bw, double: Number(e.target.value) } } })}
-                                type="number" className="input-field w-24 text-center py-2"
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-text-muted">Single Side (A3)</label>
+                            <input
+                                value={rules.printing.bw.a3_single}
+                                onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, bw: { ...rules.printing.bw, a3_single: Number(e.target.value) } } })}
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-text-muted">Double Side (A3)</label>
+                            <input
+                                value={rules.printing.bw.a3_double}
+                                onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, bw: { ...rules.printing.bw, a3_double: Number(e.target.value) } } })}
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
                             />
                         </div>
                     </div>
@@ -95,19 +111,35 @@ const PricingRules = () => {
                     </h3>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-medium text-text-muted">Single Side</label>
+                            <label className="text-sm font-medium text-text-muted">Single Side (A4)</label>
                             <input
                                 value={rules.printing.color.single}
                                 onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, color: { ...rules.printing.color, single: Number(e.target.value) } } })}
-                                type="number" className="input-field w-24 text-center py-2"
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
                             />
                         </div>
                         <div className="flex justify-between items-center">
-                            <label className="text-sm font-medium text-text-muted">Double Side</label>
+                            <label className="text-sm font-medium text-text-muted">Double Side (A4)</label>
                             <input
                                 value={rules.printing.color.double}
                                 onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, color: { ...rules.printing.color, double: Number(e.target.value) } } })}
-                                type="number" className="input-field w-24 text-center py-2"
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-text-muted">Single Side (A3)</label>
+                            <input
+                                value={rules.printing.color.a3_single}
+                                onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, color: { ...rules.printing.color, a3_single: Number(e.target.value) } } })}
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
+                            />
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-text-muted">Double Side (A3)</label>
+                            <input
+                                value={rules.printing.color.a3_double}
+                                onChange={(e) => setRules({ ...rules, printing: { ...rules.printing, color: { ...rules.printing.color, a3_double: Number(e.target.value) } } })}
+                                type="number" step="0.01" className="input-field w-24 text-center py-2"
                             />
                         </div>
                     </div>
@@ -152,50 +184,74 @@ const PricingRules = () => {
                     </div>
                 </div>
 
-                {/* Delivery Tiers */}
+                {/* Weight-Based Delivery Tiers */}
                 <div className="card-premium p-8 space-y-6 md:col-span-2">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold flex items-center gap-2">
-                            <span className="bg-orange-100 p-2 rounded-lg">🚚</span> Volume-Based Delivery Charges
+                            <span className="bg-orange-100 p-2 rounded-lg">🚚</span> Weight-Based Delivery Charges
                         </h3>
-                        <p className="text-[10px] bg-secondary/10 text-secondary px-3 py-1 rounded-full font-bold">Dynamic Tiers</p>
+                        <p className="text-[10px] bg-secondary/10 text-secondary px-3 py-1 rounded-full font-bold">Automatic Calculation</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-muted uppercase block">Tier A (&lt;100 Pages)</label>
-                            <input
-                                value={rules.delivery_tiers.tier_a}
-                                onChange={(e) => setRules({ ...rules, delivery_tiers: { ...rules.delivery_tiers, tier_a: Number(e.target.value) } })}
-                                type="number" className="input-field"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-muted uppercase block">Tier B (&gt;200 Pages)</label>
-                            <input
-                                value={rules.delivery_tiers.tier_b}
-                                onChange={(e) => setRules({ ...rules, delivery_tiers: { ...rules.delivery_tiers, tier_b: Number(e.target.value) } })}
-                                type="number" className="input-field"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-muted uppercase block">Tier C (&gt;500 Pages)</label>
-                            <input
-                                value={rules.delivery_tiers.tier_c}
-                                onChange={(e) => setRules({ ...rules, delivery_tiers: { ...rules.delivery_tiers, tier_c: Number(e.target.value) } })}
-                                type="number" className="input-field"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-text-muted uppercase block">Tier D (Bulk 1000+)</label>
-                            <input
-                                value={rules.delivery_tiers.tier_d}
-                                onChange={(e) => setRules({ ...rules, delivery_tiers: { ...rules.delivery_tiers, tier_d: Number(e.target.value) } })}
-                                type="number" className="input-field"
-                            />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {['tier_a', 'tier_b', 'tier_c'].map((tierKey) => (
+                            <div key={tierKey} className="space-y-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                                <h4 className="text-sm font-bold text-primary uppercase">
+                                    {tierKey === 'tier_a' ? 'Small (Up to 3kg)' : tierKey === 'tier_b' ? 'Medium (3-10kg)' : 'Large (10kg+)'}
+                                </h4>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                                        <label className="text-[10px] font-bold text-text-muted">Max Weight (kg)</label>
+                                        <input
+                                            value={rules.delivery_tiers[tierKey].maxWeight}
+                                            onChange={(e) => setRules({
+                                                ...rules,
+                                                delivery_tiers: {
+                                                    ...rules.delivery_tiers,
+                                                    [tierKey]: { ...rules.delivery_tiers[tierKey], maxWeight: Number(e.target.value) }
+                                                }
+                                            })}
+                                            type="number" className="w-16 text-center text-xs font-bold border-none outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                                        <label className="text-[10px] font-bold text-text-muted">Rate (₹/kg)</label>
+                                        <input
+                                            value={rules.delivery_tiers[tierKey].rate}
+                                            onChange={(e) => setRules({
+                                                ...rules,
+                                                delivery_tiers: {
+                                                    ...rules.delivery_tiers,
+                                                    [tierKey]: { ...rules.delivery_tiers[tierKey], rate: Number(e.target.value) }
+                                                }
+                                            })}
+                                            type="number" className="w-16 text-center text-xs font-bold border-none outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-slate-100">
+                                        <label className="text-[10px] font-bold text-text-muted">Slip Charge (₹)</label>
+                                        <input
+                                            value={rules.delivery_tiers[tierKey].slip}
+                                            onChange={(e) => setRules({
+                                                ...rules,
+                                                delivery_tiers: {
+                                                    ...rules.delivery_tiers,
+                                                    [tierKey]: { ...rules.delivery_tiers[tierKey], slip: Number(e.target.value) }
+                                                }
+                                            })}
+                                            type="number" className="w-16 text-center text-xs font-bold border-none outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <p className="text-[10px] text-text-muted italic">Note: These tiers are applied automatically in the Delivery Estimator and Checkout based on total page count.</p>
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-[10px] text-blue-700 font-medium">
+                            💡 <strong>How it works:</strong> Weight is calculated as (Sheets / 200) + Binding Weight.
+                            1 sheet = 5g. Spiral = 100g, Chart = 50g.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="md:col-span-2">

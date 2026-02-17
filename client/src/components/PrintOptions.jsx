@@ -49,7 +49,7 @@ const PrintOptions = () => {
         },
         {
             type: "Chart Binding",
-            price: 10,
+            price: 150,
             desc: "Standard school/project binding",
             icon: "📊"
         }

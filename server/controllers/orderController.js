@@ -63,7 +63,11 @@ export const placePrintOrder = async (req, res) => {
         const rules = pricingData ? pricingData.rules : {
             printing: { bw: { single: 2, double: 3 }, color: { single: 10, double: 15 } },
             additional: { binding: 50, hard_binding: 200, handling_fee: 10 },
-            delivery_tiers: { tier_a: 40, tier_b: 60, tier_c: 80, tier_d: 150 }
+            delivery_tiers: {
+                tier_a: { maxWeight: 3, rate: 35, slip: 0 },
+                tier_b: { maxWeight: 10, rate: 29, slip: 20 },
+                tier_c: { maxWeight: 999, rate: 26, slip: 20 }
+            }
         };
 
         // 3. Calculate Pricing (Server-side validation)
@@ -81,40 +85,53 @@ export const placePrintOrder = async (req, res) => {
         const matchingService = services.find(s => s.name === serviceName);
 
         let rate;
+        const colorKey = isColor ? 'color' : 'bw';
+        const sideKey = isDouble ? 'double' : 'single';
+        const a3SideKey = isDouble ? 'a3_double' : 'a3_single';
+
         if (matchingService) {
             rate = Number(matchingService.price);
             if (isDouble) {
-                const multiplier = isColor
-                    ? (rules.printing.color.double / rules.printing.color.single)
-                    : (rules.printing.bw.double / rules.printing.bw.single);
+                const multiplier = (rules.printing[colorKey].double / rules.printing[colorKey].single) || 1;
                 rate *= multiplier;
             }
+            if (isA3) rate *= 2;
         } else {
-            rate = isColor
-                ? (isDouble ? rules.printing.color.double : rules.printing.color.single)
-                : (isDouble ? rules.printing.bw.double : rules.printing.bw.single);
+            if (isA3) {
+                rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
+            } else {
+                rate = rules.printing[colorKey][sideKey];
+            }
         }
 
-        // A3 Multiplier (2x)
-        if (isA3) rate *= 2;
-
-        let printingCharge = totalPages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
-        // Note: isDouble logic is already included in rate if matchingService exists.
-        // If not matchingService, the ternary above handles it.
+        const printingCharge = totalPages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
+        const billingSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
 
         let bindingCharge = 0;
-        if (printOptions.binding === 'Spiral') bindingCharge = rules.additional.binding || 50;
-        else if (printOptions.binding === 'Staple') bindingCharge = 10;
-        else if (printOptions.binding === 'Hard') bindingCharge = rules.additional.hard_binding || 200;
-        else if (printOptions.binding === 'Chart') bindingCharge = rules.additional.chart_binding || 150;
+        let bindingWeight = 0;
+        if (printOptions.binding === 'Spiral') {
+            bindingCharge = (rules.additional.binding || 15) * (printOptions.bindingQuantity || 1);
+            bindingWeight = 0.1 * (printOptions.bindingQuantity || 1);
+        } else if (printOptions.binding === 'Chart') {
+            bindingCharge = (rules.additional.chart_binding || 10) * (printOptions.bindingQuantity || 1);
+            bindingWeight = 0.05 * (printOptions.bindingQuantity || 1);
+        }
+
+        const totalSheets = billingSheets * (printOptions.copies || 1);
+        const calcWeight = (totalSheets * 5 / 1000) + bindingWeight;
 
         let deliveryCharge = 0;
         if (fulfillment.method === 'delivery') {
-            const tiers = rules.delivery_tiers || { tier_a: 40, tier_b: 60, tier_c: 80, tier_d: 150 };
-            deliveryCharge = tiers.tier_a;
-            if (docPages >= 1000) deliveryCharge = tiers.tier_d;
-            else if (docPages > 500) deliveryCharge = tiers.tier_c;
-            else if (docPages > 200) deliveryCharge = tiers.tier_b;
+            const tiers = rules.delivery_tiers;
+            let rule = tiers.tier_c; // Default to highest tier
+
+            if (calcWeight <= tiers.tier_a.maxWeight) {
+                rule = tiers.tier_a;
+            } else if (calcWeight <= tiers.tier_b.maxWeight) {
+                rule = tiers.tier_b;
+            }
+
+            deliveryCharge = (rule.rate * calcWeight) + rule.slip;
         }
 
         // Final Total calculated server-side to prevent tampering
@@ -296,7 +313,12 @@ export const updateOrderAndRecalculate = async (req, res) => {
         const pricingData = await Pricing.findOne({ type: 'printing_rules' });
         const rules = pricingData ? pricingData.rules : {
             printing: { bw: { single: 2, double: 3 }, color: { single: 10, double: 15 } },
-            additional: { binding: 50, hard_binding: 200, handling_fee: 10 }
+            additional: { binding: 50, hard_binding: 200, handling_fee: 10 },
+            delivery_tiers: {
+                tier_a: { maxWeight: 3, rate: 35, slip: 0 },
+                tier_b: { maxWeight: 10, rate: 29, slip: 20 },
+                tier_c: { maxWeight: 999, rate: 26, slip: 20 }
+            }
         };
 
         // Recalculate
@@ -308,19 +330,48 @@ export const updateOrderAndRecalculate = async (req, res) => {
         const isColor = printOptions.mode === 'Color';
         const isDouble = printOptions.side === 'Double';
 
-        const rate = isColor
-            ? (isDouble ? rules.printing.color.double : rules.printing.color.single)
-            : (isDouble ? rules.printing.bw.double : rules.printing.bw.single);
+        const colorKey = isColor ? 'color' : 'bw';
+        const sideKey = isDouble ? 'double' : 'single';
+        const a3SideKey = isDouble ? 'a3_double' : 'a3_single';
 
-        let printingCharge = totalPages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
-        if (isDouble) printingCharge = printingCharge * 0.5;
+        let rate;
+        if (isA3) {
+            rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
+        } else {
+            rate = rules.printing[colorKey][sideKey];
+        }
+
+        const printingCharge = totalPages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
+        const billingSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
 
         let bindingCharge = 0;
-        if (printOptions.binding === 'Spiral') bindingCharge = rules.additional.binding || 50;
-        if (printOptions.binding === 'Staple') bindingCharge = 10;
-        if (printOptions.binding === 'Hard') bindingCharge = rules.additional.hard_binding || 200;
+        let bindingWeight = 0;
+        if (printOptions.binding === 'Spiral') {
+            bindingCharge = (rules.additional.binding || 15) * (printOptions.bindingQuantity || 1);
+            bindingWeight = 0.1 * (printOptions.bindingQuantity || 1);
+        } else if (printOptions.binding === 'Chart') {
+            bindingCharge = (rules.additional.chart_binding || 10) * (printOptions.bindingQuantity || 1);
+            bindingWeight = 0.05 * (printOptions.bindingQuantity || 1);
+        }
 
-        const subtotal = printingCharge + bindingCharge + (order.pricing.deliveryCharge || 0);
+        const totalSheets = billingSheets * (printOptions.copies || 1);
+        const calcWeight = (totalSheets * 5 / 1000) + bindingWeight;
+
+        let deliveryCharge = 0;
+        if (order.fulfillment.method === 'delivery') {
+            const tiers = rules.delivery_tiers;
+            let rule = tiers.tier_c;
+
+            if (calcWeight <= tiers.tier_a.maxWeight) {
+                rule = tiers.tier_a;
+            } else if (calcWeight <= tiers.tier_b.maxWeight) {
+                rule = tiers.tier_b;
+            }
+
+            deliveryCharge = (rule.rate * calcWeight) + rule.slip;
+        }
+
+        const subtotal = printingCharge + bindingCharge + deliveryCharge;
         const finalAmount = Math.max(0, subtotal - (order.pricing.couponDiscount || 0) - (order.pricing.walletUsed || 0));
 
         order.printOptions = { ...order.printOptions, ...printOptions };

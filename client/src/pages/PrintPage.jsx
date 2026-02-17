@@ -48,7 +48,8 @@ const PrintPage = () => {
         district: searchParams.get('district') || '',
         state: searchParams.get('state') || '',
         landmark: '',
-        phone: ''
+        phone: '',
+        weight: 1
     });
     const [pricing, setPricing] = useState({
         basePrint: 0,
@@ -78,7 +79,11 @@ const PrintPage = () => {
     const [rules, setRules] = useState({
         printing: { bw: { single: 2, double: 3 }, color: { single: 10, double: 15 } },
         additional: { binding: 50, hard_binding: 200, handling_fee: 10 },
-        delivery: 40
+        delivery_tiers: {
+            tier_a: { maxWeight: 3, rate: 35, slip: 0 },
+            tier_b: { maxWeight: 10, rate: 29, slip: 20 },
+            tier_c: { maxWeight: 999, rate: 26, slip: 20 }
+        }
     });
 
     // Fetch wallet balance and pricing rules on mount
@@ -95,7 +100,7 @@ const PrintPage = () => {
                     setRules({
                         printing: r.printing || rules.printing,
                         additional: r.additional || rules.additional,
-                        delivery_tiers: r.delivery_tiers || { tier_a: 40, tier_b: 60, tier_c: 80, tier_d: 150 }
+                        delivery_tiers: r.delivery_tiers || rules.delivery_tiers
                     });
                 }
             } catch (e) { }
@@ -136,33 +141,32 @@ const PrintPage = () => {
 
         // Base rate logic (Dynamic or Rule-based)
         let rate;
+        const colorKey = isColor ? 'color' : 'bw';
+        const sideKey = isDouble ? 'double' : 'single';
+        const a3SideKey = isDouble ? 'a3_double' : 'a3_single';
+
         if (matchingService) {
             rate = Number(matchingService.price);
-            // Apply double sided multiplier from rules if applicable
             if (isDouble) {
-                const multiplier = isColor
-                    ? (rules.printing.color.double / rules.printing.color.single)
-                    : (rules.printing.bw.double / rules.printing.bw.single);
+                const multiplier = (rules.printing[colorKey].double / rules.printing[colorKey].single) || 1;
                 rate *= multiplier;
             }
+            if (isA3) rate *= 2;
         } else {
-            rate = isColor
-                ? (isDouble ? rules.printing.color.double : rules.printing.color.single)
-                : (isDouble ? rules.printing.bw.double : rules.printing.bw.single);
+            if (isA3) {
+                rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
+            } else {
+                rate = rules.printing[colorKey][sideKey];
+            }
         }
 
-        // A3 Multiplier (2x)
-        if (isA3) rate *= 2;
-
-        const basePrintCharge = totalPages * rate * options.copies;
-        const sideDiscount = 0; // Since multiplier/rate is already adjusted for double
-        const printCharge = basePrintCharge;
+        const printingCharge = totalPages * rate * options.copies;
+        const billingSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
+        const printCharge = printingCharge;
 
         let bindBase = 0;
-        if (options.binding === 'Spiral') bindBase = rules.additional.binding;
-        else if (options.binding === 'Staple') bindBase = 10;
-        else if (options.binding === 'Hard') bindBase = rules.additional.hard_binding;
-        else if (options.binding === 'Chart') bindBase = rules.additional.chart_binding || 150;
+        if (options.binding === 'Spiral') bindBase = rules.additional?.binding || 15;
+        else if (options.binding === 'Chart') bindBase = rules.additional?.chart_binding || 10;
 
         const bindCharge = bindBase * (options.bindingQuantity || 1);
 
@@ -171,12 +175,26 @@ const PrintPage = () => {
         const isLastStage = step === 4;
         const hasValidPincode = delivery.pincode && delivery.pincode.length === 6;
 
-        if (fulfillment === 'delivery' && isLastStage && hasValidPincode) {
-            const tiers = rules.delivery_tiers || { tier_a: 40, tier_b: 60, tier_c: 80, tier_d: 150 };
-            deliveryCharge = tiers.tier_a;
-            if (actualPageVolume >= 1000) deliveryCharge = tiers.tier_d;
-            else if (actualPageVolume > 500) deliveryCharge = tiers.tier_c;
-            else if (actualPageVolume > 200) deliveryCharge = tiers.tier_b;
+        let bindWeight = 0;
+        if (options.binding === 'Spiral') bindWeight = 0.1 * (options.bindingQuantity || 1);
+        else if (options.binding === 'Chart') bindWeight = 0.05 * (options.bindingQuantity || 1);
+
+        const totalSheets = billingSheets * options.copies;
+        const calcWeight = (totalSheets * 5 / 1000) + bindWeight;
+
+        // Tiered Delivery Logic (Dynamic from DB)
+        // Tiered Delivery Logic (Dynamic from DB)
+        if (fulfillment === 'delivery' && hasValidPincode && rules.delivery_tiers) {
+            const tiers = rules.delivery_tiers;
+            let rule = tiers.tier_c; // Default to highest tier
+
+            if (calcWeight <= tiers.tier_a.maxWeight) {
+                rule = tiers.tier_a;
+            } else if (calcWeight <= tiers.tier_b.maxWeight) {
+                rule = tiers.tier_b;
+            }
+
+            deliveryCharge = (rule.rate * calcWeight) + rule.slip;
         }
 
         const subtotal = printCharge + bindCharge + deliveryCharge;
@@ -186,16 +204,17 @@ const PrintPage = () => {
         const total = afterCoupon - walletUsed;
 
         setPricing({
-            basePrint: basePrintCharge,
-            sideDiscount,
-            print: printCharge,
+            basePrint: printingCharge,
+            sideDiscount: 0,
+            print: printingCharge,
             binding: bindCharge,
             delivery: deliveryCharge,
             couponDiscount,
             walletUsed,
-            total
+            total,
+            weight: calcWeight
         });
-    }, [fileMetadata, options, fulfillment, couponApplied, useWallet, walletBalance, rules, services, step, delivery]);
+    }, [fileMetadata, options, fulfillment, couponApplied, useWallet, walletBalance, rules, services, step, delivery.pincode]);
 
     const handlePincodeChange = async (pincode) => {
         setDelivery(prev => ({ ...prev, pincode }));
@@ -207,6 +226,11 @@ const PrintPage = () => {
                 const data = await response.json();
                 if (data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
                     const postOffice = data[0].PostOffice[0];
+                    if (!postOffice.Pincode.startsWith('6')) {
+                        setPincodeError('Service only available in Tamil Nadu (Pincodes starting with 6)');
+                        setDelivery(prev => ({ ...prev, district: '', state: '' }));
+                        return;
+                    }
                     setDelivery(prev => ({
                         ...prev,
                         district: postOffice.District || '',
@@ -350,14 +374,8 @@ const PrintPage = () => {
 
     return (
         <div className="py-12 max-w-6xl mx-auto space-y-12">
-            {/* Header with Logo */}
+            {/* Header */}
             <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                    <PrintExpressLogo />
-                </div>
-                <span className="px-4 py-2 bg-gradient-to-r from-blue-100 to-orange-100 text-blue-800 rounded-full text-sm font-bold uppercase tracking-wider inline-block">
-                    Fast & Reliable Printing Services 🚀
-                </span>
                 <h1 className="text-4xl md:text-5xl font-bold font-outfit bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">
                     {step === 1 && "Upload Documents"}
                     {step === 2 && "Print Options"}
@@ -384,8 +402,121 @@ const PrintPage = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Wizard Steps */}
+            <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
+                {/* 1. Sidebar/Top Order Summary */}
+                <div className="order-first lg:order-last lg:col-span-1 space-y-6">
+                    <div className="card-premium p-6 lg:sticky lg:top-24 sticky top-0 z-10 space-y-6 border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50 shadow-xl">
+                        <h4 className="text-xl font-bold font-outfit text-center bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">Order Summary</h4>
+
+                        <div className="space-y-4 text-sm">
+                            <div className="flex justify-between items-center pb-2 border-b border-blue-100/50">
+                                <span className="text-text-muted">Documents</span>
+                                <span className="font-bold text-blue-800">{files.length} files</span>
+                            </div>
+                            <div className="flex justify-between items-center pb-2 border-b border-blue-100/50">
+                                <span className="text-text-muted">Total Pages ({options.side} Sided)</span>
+                                <span className="font-bold text-blue-800">{totalPages * options.copies} pg</span>
+                            </div>
+                            {options.side === 'Double' && (
+                                <div className="flex justify-between items-center pb-2 border-b border-blue-100/50 italic animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <span className="text-blue-600 font-semibold">Billable Sheets</span>
+                                    <span className="font-bold text-blue-800">{Math.ceil(totalPages / 2) * options.copies} sheets</span>
+                                </div>
+                            )}
+
+                            {fulfillment === 'delivery' && (
+                                <div className="flex justify-between items-center pb-2 border-b border-blue-100/50 animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <span className="text-text-muted">Weight</span>
+                                    <span className="font-bold text-blue-800">{pricing.weight?.toFixed(2) || 0} kg</span>
+                                </div>
+                            )}
+
+                            {/* Detailed Summary only in Step 4 */}
+                            {step === 4 && (
+                                <div className="space-y-2 py-2 bg-blue-50/50 rounded-lg p-3 border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Specifications</p>
+                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                        <div><span className="text-text-muted">Mode:</span> <span className="font-bold">{options.mode}</span></div>
+                                        <div><span className="text-text-muted">Size:</span> <span className="font-bold">{options.paperSize}</span></div>
+                                        <div><span className="text-text-muted">Side:</span> <span className="font-bold">{options.side}</span></div>
+                                        <div><span className="text-text-muted">Orient:</span> <span className="font-bold">{options.orientation}</span></div>
+                                        <div><span className="text-text-muted">Layout:</span> <span className="font-bold">{options.layout}</span></div>
+                                        <div><span className="text-text-muted">Bind:</span> <span className="font-bold">{options.binding} x{options.bindingQuantity}</span></div>
+                                        <div><span className="text-text-muted">Copies:</span> <span className="font-bold">{options.copies}</span></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2 pt-2">
+                                <div className="flex justify-between text-text-muted">
+                                    <span>Printing Charge</span>
+                                    <span>₹{pricing.basePrint.toFixed(2)}</span>
+                                </div>
+                                {options.binding !== 'None' && (
+                                    <div className="flex justify-between text-text-muted">
+                                        <span>Binding ({options.bindingQuantity}x)</span>
+                                        <span>₹{pricing.binding.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-text-muted animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <span>Delivery ({fulfillment})</span>
+                                    <span>₹{pricing.delivery.toFixed(2)}</span>
+                                </div>
+                                {pricing.couponDiscount > 0 && (
+                                    <div className="flex justify-between text-green-600 font-semibold">
+                                        <span>Coupon Discount</span>
+                                        <span>-₹{pricing.couponDiscount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                {pricing.walletUsed > 0 && (
+                                    <div className="flex justify-between text-amber-600 font-semibold">
+                                        <span>Wallet Used</span>
+                                        <span>-₹{pricing.walletUsed.toFixed(2)}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="pt-4 border-t-2 border-blue-200">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-lg font-bold text-gray-800">Grand Total</span>
+                                    <div className="text-right">
+                                        <span className="text-2xl font-black text-blue-700">₹{pricing.total.toFixed(2)}</span>
+                                        <p className="text-[10px] text-text-muted">Incl. all taxes</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Place Order ONLY if step 4 */}
+                        {step === 4 ? (
+                            <button
+                                onClick={handlePlaceOrder}
+                                disabled={loading}
+                                className="w-full py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-lg shadow-blue-200 active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {loading ? "Placing Order..." : "Confirm & Place Order 🚀"}
+                            </button>
+                        ) : (
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                                <p className="text-xs text-text-muted italic">Complete Step {step} to proceed</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-center gap-4 text-[10px] text-text-muted font-bold uppercase tracking-widest">
+                            <span className="flex items-center gap-1">🛡️ SECURE</span>
+                            <span className="flex items-center gap-1">⚡ FAST</span>
+                            <span className="flex items-center gap-1">✨ PREMIUM</span>
+                        </div>
+                    </div>
+
+                    <div className="card-premium p-6 flex flex-col items-center text-center space-y-2 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
+                        <p className="text-sm font-bold text-orange-800">💡 Need Help?</p>
+                        <p className="text-xs text-text-muted">Confused about sides or binding? Chat with us on WhatsApp for instant assistance.</p>
+                        <button className="text-orange-600 font-bold text-sm mt-2 flex items-center gap-2 hover:text-orange-700">WhatsApp Support 🔗</button>
+                    </div>
+                </div>
+
+                {/* 2. Wizard Steps */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* 1. Upload Files */}
                     {step === 1 && (
@@ -398,25 +529,20 @@ const PrintPage = () => {
                                 {processingFiles && <span className="text-sm text-blue-600 animate-pulse">Processing...</span>}
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <label className="border-2 border-dashed border-blue-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">📄</span>
-                                    <span className="text-[10px] font-bold text-center uppercase">PDF Only</span>
+                            <div className="grid grid-cols-3 gap-3">
+                                <label className="border-2 border-dashed border-blue-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">📄</span>
+                                    <span className="text-[9px] font-bold text-center uppercase">PDF</span>
                                     <input type="file" className="hidden" multiple accept=".pdf,application/pdf" onChange={handleFileChange} />
                                 </label>
-                                <label className="border-2 border-dashed border-orange-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-orange-50 hover:border-orange-500 transition-all group">
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">🖼️</span>
-                                    <span className="text-[10px] font-bold text-center uppercase">Images</span>
+                                <label className="border-2 border-dashed border-orange-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-orange-50 hover:border-orange-500 transition-all group">
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">🖼️</span>
+                                    <span className="text-[9px] font-bold text-center uppercase">Images</span>
                                     <input type="file" className="hidden" multiple accept="image/*" onChange={handleFileChange} />
                                 </label>
-                                <label className="border-2 border-dashed border-green-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-green-50 hover:border-green-500 transition-all group">
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">🪪</span>
-                                    <span className="text-[10px] font-bold text-center uppercase">ID Cards</span>
-                                    <input type="file" className="hidden" multiple accept=".pdf,image/*" onChange={handleFileChange} />
-                                </label>
-                                <label className="border-2 border-dashed border-purple-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-purple-50 hover:border-purple-500 transition-all group">
-                                    <span className="text-3xl group-hover:scale-110 transition-transform">📁</span>
-                                    <span className="text-[10px] font-bold text-center uppercase">All Files</span>
+                                <label className="border-2 border-dashed border-purple-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-purple-50 hover:border-purple-500 transition-all group">
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">📁</span>
+                                    <span className="text-[9px] font-bold text-center uppercase">All</span>
                                     <input type="file" className="hidden" multiple onChange={handleFileChange} />
                                 </label>
                             </div>
@@ -605,10 +731,8 @@ const PrintPage = () => {
                                     <div className="flex flex-col gap-2">
                                         <select value={options.binding} onChange={(e) => setOptions({ ...options, binding: e.target.value })} className="input-field">
                                             <option value="None">No Binding</option>
-                                            <option value="Spiral">Spiral Binding (+₹{rules.additional.binding})</option>
-                                            <option value="Staple">Staple Binding (+₹10)</option>
-                                            <option value="Hard">Hard Binding (+₹{rules.additional.hard_binding})</option>
-                                            <option value="Chart">Chart Binding (+₹{rules.additional.chart_binding || 150})</option>
+                                            <option value="Spiral">Spiral Binding (+₹15)</option>
+                                            <option value="Chart">Chart Binding (+₹150)</option>
                                         </select>
                                         {options.binding !== 'None' && (
                                             <div className="flex items-center gap-2 mt-1">
@@ -652,14 +776,23 @@ const PrintPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => setFulfillment('delivery')}
-                                    className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${fulfillment === 'delivery'
+                                    className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 relative overflow-hidden ${fulfillment === 'delivery'
                                         ? 'border-blue-600 bg-blue-50 shadow-lg shadow-blue-100'
                                         : 'border-border hover:border-blue-300'}`}
                                 >
-                                    <span className="text-3xl">🚚</span>
+                                    <div className="flex justify-between items-start">
+                                        <span className="text-3xl">🚚</span>
+                                        {fulfillment === 'delivery' && pricing.delivery > 0 && (
+                                            <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">Calculated</span>
+                                        )}
+                                    </div>
                                     <p className="font-bold">Home Delivery</p>
-                                    <p className="text-xs text-text-muted">Delivered to your doorstep</p>
-                                    <p className="text-xs font-bold text-blue-600">+₹{rules.delivery}</p>
+                                    <p className="text-[10px] text-text-muted leading-relaxed">
+                                        Charges applied by <strong>weight range</strong> + <strong>slip cost</strong> (Dynamic Pricing)
+                                    </p>
+                                    <p className="text-sm font-black text-blue-700">
+                                        {pricing.delivery > 0 ? `₹${pricing.delivery.toFixed(2)}` : 'Calculated at Checkout'}
+                                    </p>
                                 </button>
                                 <button
                                     onClick={() => setFulfillment('pickup')}
@@ -827,115 +960,8 @@ const PrintPage = () => {
                     )}
                 </div>
 
-                {/* Sidebar Order Summary */}
-                <div className="space-y-6">
-                    <div className="card-premium p-6 sticky top-24 space-y-6 border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50 shadow-xl">
-                        <h4 className="text-xl font-bold font-outfit text-center bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">Order Summary</h4>
-
-                        <div className="space-y-4 text-sm">
-                            <div className="flex justify-between items-center pb-2 border-b border-blue-100/50">
-                                <span className="text-text-muted">Documents</span>
-                                <span className="font-bold text-blue-800">{files.length} files</span>
-                            </div>
-                            <div className="flex justify-between items-center pb-2 border-b border-blue-100/50">
-                                <span className="text-text-muted">Total Pages</span>
-                                <span className="font-bold text-blue-800">{totalPages * options.copies} pg</span>
-                            </div>
-
-                            {/* Detailed Summary only in Step 4 */}
-                            {step === 4 && (
-                                <div className="space-y-2 py-2 bg-blue-50/50 rounded-lg p-3 border border-blue-100">
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Specifications</p>
-                                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                                        <div><span className="text-text-muted">Mode:</span> <span className="font-bold">{options.mode}</span></div>
-                                        <div><span className="text-text-muted">Size:</span> <span className="font-bold">{options.paperSize}</span></div>
-                                        <div><span className="text-text-muted">Side:</span> <span className="font-bold">{options.side}</span></div>
-                                        <div><span className="text-text-muted">Orient:</span> <span className="font-bold">{options.orientation}</span></div>
-                                        <div><span className="text-text-muted">Layout:</span> <span className="font-bold">{options.layout}</span></div>
-                                        <div><span className="text-text-muted">Bind:</span> <span className="font-bold">{options.binding} x{options.bindingQuantity}</span></div>
-                                        <div><span className="text-text-muted">Copies:</span> <span className="font-bold">{options.copies}</span></div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-2 pt-2">
-                                <div className="flex justify-between text-text-muted">
-                                    <span>Printing Charge</span>
-                                    <span>₹{pricing.basePrint.toFixed(2)}</span>
-                                </div>
-                                {options.side === 'Double' && (
-                                    <div className="flex justify-between text-green-600 font-bold text-[10px] bg-green-50 px-2 py-1 rounded-lg border border-green-100">
-                                        <span>Double-Sided Discount (-50%)</span>
-                                        <span>-₹{pricing.sideDiscount.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                {options.binding !== 'None' && (
-                                    <div className="flex justify-between text-text-muted">
-                                        <span>Binding ({options.bindingQuantity}x)</span>
-                                        <span>₹{pricing.binding.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                {step === 4 && (
-                                    <div className="flex justify-between text-text-muted animate-in fade-in slide-in-from-top-1 duration-300">
-                                        <span>Delivery ({fulfillment})</span>
-                                        <span>₹{pricing.delivery.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                {pricing.couponDiscount > 0 && (
-                                    <div className="flex justify-between text-green-600 font-semibold">
-                                        <span>Coupon Discount</span>
-                                        <span>-₹{pricing.couponDiscount.toFixed(2)}</span>
-                                    </div>
-                                )}
-                                {pricing.walletUsed > 0 && (
-                                    <div className="flex justify-between text-amber-600 font-semibold">
-                                        <span>Wallet Used</span>
-                                        <span>-₹{pricing.walletUsed.toFixed(2)}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t-2 border-blue-200">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-lg font-bold text-gray-800">Grand Total</span>
-                                    <div className="text-right">
-                                        <span className="text-2xl font-black text-blue-700">₹{pricing.total.toFixed(2)}</span>
-                                        <p className="text-[10px] text-text-muted">Incl. all taxes</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Place Order ONLY if step 4 */}
-                        {step === 4 ? (
-                            <button
-                                onClick={handlePlaceOrder}
-                                disabled={loading}
-                                className="w-full py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white shadow-lg shadow-blue-200 active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {loading ? "Placing Order..." : "Confirm & Place Order 🚀"}
-                            </button>
-                        ) : (
-                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
-                                <p className="text-xs text-text-muted italic">Complete Step {step} to proceed</p>
-                            </div>
-                        )}
-
-                        <div className="flex justify-center gap-4 text-[10px] text-text-muted font-bold uppercase tracking-widest">
-                            <span className="flex items-center gap-1">🛡️ SECURE</span>
-                            <span className="flex items-center gap-1">⚡ FAST</span>
-                            <span className="flex items-center gap-1">✨ PREMIUM</span>
-                        </div>
-                    </div>
-
-                    <div className="card-premium p-6 flex flex-col items-center text-center space-y-2 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
-                        <p className="text-sm font-bold text-orange-800">💡 Need Help?</p>
-                        <p className="text-xs text-text-muted">Confused about sides or binding? Chat with us on WhatsApp for instant assistance.</p>
-                        <button className="text-orange-600 font-bold text-sm mt-2 flex items-center gap-2 hover:text-orange-700">WhatsApp Support 🔗</button>
-                    </div>
-                </div>
             </div>
-        </div >
+        </div>
     );
 };
 

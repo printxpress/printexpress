@@ -77,8 +77,11 @@ const PrintPage = () => {
     const [pincodeError, setPincodeError] = useState('');
 
     const [rules, setRules] = useState({
-        printing: { bw: { single: 2, double: 3 }, color: { single: 10, double: 15 } },
-        additional: { binding: 50, hard_binding: 200, handling_fee: 10 },
+        printing: {
+            bw: { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 },
+            color: { single: 8, double: 8, a3_single: 20, a3_double: 20 }
+        },
+        additional: { binding: 15, chart_binding: 10, hard_binding: 200, handling_fee: 10 },
         delivery_tiers: {
             tier_a: { maxWeight: 3, rate: 35, slip: 0 },
             tier_b: { maxWeight: 10, rate: 29, slip: 20 },
@@ -194,7 +197,7 @@ const PrintPage = () => {
                 rule = tiers.tier_b;
             }
 
-            deliveryCharge = (rule.rate * calcWeight) + rule.slip;
+            deliveryCharge = (Number(rule.rate || 0) * calcWeight) + (Number(rule.slip || 0));
         }
 
         const subtotal = printCharge + bindCharge + deliveryCharge;

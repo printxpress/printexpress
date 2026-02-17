@@ -104,8 +104,11 @@ export const placePrintOrder = async (req, res) => {
             }
         }
 
-        const printingCharge = totalPages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
-        const billingSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
+        // Apply Pages per Sheet Logic (Backend Sync)
+        const effectivePages = printOptions.pagesPerSheet === 2 ? Math.ceil(totalPages / 2) : totalPages;
+
+        const printingCharge = effectivePages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
+        const billingSheets = isDouble ? Math.ceil(effectivePages / 2) : effectivePages;
 
         let bindingCharge = 0;
         let bindingWeight = 0;
@@ -131,12 +134,17 @@ export const placePrintOrder = async (req, res) => {
                 rule = tiers.tier_b;
             }
 
-            deliveryCharge = (rule.rate * calcWeight) + rule.slip;
+            deliveryCharge = (Number(rule.rate || 0) * calcWeight) + Number(rule.slip || 0);
         }
 
         // Final Total calculated server-side to prevent tampering
         const subtotal = printingCharge + bindingCharge + deliveryCharge;
-        const finalAmount = Math.max(0, subtotal - (couponDiscount || 0) - (walletUsed || 0));
+        let finalAmount = Math.max(0, subtotal - (couponDiscount || 0) - (walletUsed || 0));
+
+        // NaN Safeguards
+        if (isNaN(printingCharge)) throw new Error("Invalid printing charge calculation");
+        if (isNaN(deliveryCharge)) deliveryCharge = 0;
+        if (isNaN(finalAmount)) finalAmount = 0;
 
         // 4. Handle Wallet Deduction
         if (walletUsed > 0) {

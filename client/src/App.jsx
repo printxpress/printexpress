@@ -35,6 +35,7 @@ import Loading from './components/Loading';
 import ManageBanners from './pages/seller/ManageBanners';
 import ReferAndEarn from './pages/ReferAndEarn';
 import Vouchers from './pages/Vouchers';
+import OrderSuccess from './pages/OrderSuccess';
 
 const App = () => {
 
@@ -60,6 +61,7 @@ const App = () => {
           <Route path='/products/:category/:id' element={<ProductDetails />} />
           <Route path='/cart' element={<Cart />} />
           <Route path='/add-address' element={<AddAddress />} />
+          <Route path='/order-success' element={<OrderSuccess />} />
           <Route path='/my-orders' element={<MyOrders />} />
           <Route path='/profile' element={<Profile />} />
           <Route path='/loader' element={<Loading />} />

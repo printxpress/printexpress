@@ -1,4 +1,5 @@
 import Pricing from "../models/Pricing.js";
+import mongoose from "mongoose";
 
 // Get Pricing Rules : /api/pricing
 export const getPricing = async (req, res) => {

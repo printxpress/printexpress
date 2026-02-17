@@ -4,9 +4,15 @@ import Wallet from '../models/Wallet.js';
 import Pricing from '../models/Pricing.js';
 import Service from '../models/Service.js';
 import Coupon from '../models/Coupon.js';
+import ShopSettings from '../models/ShopSettings.js';
 // ... existing imports ...
 import { v2 as cloudinary } from 'cloudinary';
 import PDFDocument from 'pdfkit';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 // Helper for Custom Page Counting
@@ -61,8 +67,8 @@ export const placePrintOrder = async (req, res) => {
         ]);
 
         const rules = pricingData ? pricingData.rules : {
-            printing: { bw: { single: 2, double: 3 }, color: { single: 10, double: 15 } },
-            additional: { binding: 50, hard_binding: 200, handling_fee: 10 },
+            printing: { bw: { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 }, color: { single: 8, double: 8, a3_single: 20, a3_double: 20 } },
+            additional: { binding: 15, chart_binding: 10, hard_binding: 200, handling_fee: 10 },
             delivery_tiers: {
                 tier_a: { maxWeight: 3, rate: 35, slip: 0 },
                 tier_b: { maxWeight: 10, rate: 29, slip: 20 },
@@ -80,28 +86,16 @@ export const placePrintOrder = async (req, res) => {
         const isDouble = printOptions.side === 'Double';
         const isA3 = printOptions.paperSize === 'A3';
 
-        // Dynamic Pricing Integration (Backend)
-        const serviceName = isColor ? "Color A4 Print" : "B/W A4 Print";
-        const matchingService = services.find(s => s.name === serviceName);
-
+        // Primary Rate Logic based on Printing Rules (Backend)
         let rate;
         const colorKey = isColor ? 'color' : 'bw';
         const sideKey = isDouble ? 'double' : 'single';
         const a3SideKey = isDouble ? 'a3_double' : 'a3_single';
 
-        if (matchingService) {
-            rate = Number(matchingService.price);
-            if (isDouble) {
-                const multiplier = (rules.printing[colorKey].double / rules.printing[colorKey].single) || 1;
-                rate *= multiplier;
-            }
-            if (isA3) rate *= 2;
+        if (isA3) {
+            rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
         } else {
-            if (isA3) {
-                rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
-            } else {
-                rate = rules.printing[colorKey][sideKey];
-            }
+            rate = rules.printing[colorKey][sideKey];
         }
 
         // Apply Pages per Sheet Logic (Backend Sync)
@@ -411,48 +405,130 @@ export const generateThermalBillPDF = async (req, res) => {
         const order = await Order.findById(orderId).populate('userId');
         if (!order) return res.json({ success: false, message: "Order not found" });
 
-        const doc = new PDFDocument({ size: [226, 600], margins: { top: 10, left: 10, right: 10, bottom: 10 } }); // 80mm wide (approx 226pt)
+        const shop = await ShopSettings.findOne() || {
+            name: "Print Express",
+            address: "Print Express Store, Coimbatore",
+            phone: "+91 98765 43210",
+            email: "support@printexpress.com",
+            tagline: "Quality at Speed"
+        };
+
+        const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=bill_${orderId}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId.slice(-8)}.pdf`);
 
         doc.pipe(res);
 
-        // Content
-        doc.fontSize(12).text('PRINT EXPRESS', { align: 'center' });
-        doc.fontSize(8).text('Your One-Stop Print Shop', { align: 'center' });
-        doc.moveDown();
-        doc.text('-----------------------------------', { align: 'center' });
-        doc.text(`Order ID: #${order._id.toString().slice(-8)}`);
-        doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
-        doc.text(`Customer: ${order.userId?.name || 'Walk-in'}`);
-        doc.text(`Phone: ${order.deliveryDetails?.phone || 'N/A'}`);
-        doc.text('-----------------------------------');
-        doc.moveDown();
+        // Header Section
+        const logoPath = path.join(__dirname, '../assets/logo.png');
+        try {
+            doc.image(logoPath, 50, 45, { width: 100 });
+        } catch (error) {
+            doc.fontSize(20).fillColor('#000').text('PRINT EXPRESS', 50, 50);
+        }
 
-        doc.text('Items:', { underline: true });
-        order.files.forEach(file => {
-            doc.text(`${file.originalName.slice(0, 20)}... x ${order.printOptions.copies}`);
+        doc.fillColor('#444444')
+            .fontSize(20)
+            .text('INVOICE', 50, 50, { align: 'right' })
+            .fontSize(10)
+            .text(`Order ID: #${order._id.toString().slice(-8).toUpperCase()}`, 200, 65, { align: 'right' })
+            .text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, 200, 80, { align: 'right' })
+            .moveDown();
+
+        doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#eeeeee').stroke();
+
+        // Shop and Customer Info
+        doc.fillColor('#000').fontSize(10).font('Helvetica-Bold').text('SOLD BY:', 50, 130);
+        doc.font('Helvetica').text(shop.name, 50, 145);
+        doc.text(shop.address, 50, 160, { width: 200 });
+        doc.text(`Phone: ${shop.phone}`, 50, 190);
+        if (shop.gstNumber) doc.text(`GST: ${shop.gstNumber}`, 50, 205);
+
+        doc.font('Helvetica-Bold').text('BILL TO:', 350, 130);
+        doc.font('Helvetica').text(order.userId?.name || 'Walk-in Customer', 350, 145);
+        if (order.deliveryDetails?.address) {
+            doc.text(order.deliveryDetails.address, 350, 160, { width: 200 });
+            doc.text(`${order.deliveryDetails.dist}, ${order.deliveryDetails.state} - ${order.deliveryDetails.pincode}`, 350, 190);
+        }
+        doc.text(`Phone: ${order.deliveryDetails?.phone || 'N/A'}`, 350, 205);
+
+        doc.moveTo(50, 230).lineTo(550, 230).strokeColor('#eeeeee').stroke();
+
+        // Table Header
+        const tableTop = 250;
+        doc.font('Helvetica-Bold');
+        doc.text('Description', 50, tableTop);
+        doc.text('Pages', 250, tableTop, { width: 50, align: 'center' });
+        doc.text('Copies', 300, tableTop, { width: 50, align: 'center' });
+        doc.text('Category', 350, tableTop, { width: 100, align: 'center' });
+        doc.text('Amount', 450, tableTop, { width: 100, align: 'right' });
+
+        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).strokeColor('#eeeee').stroke();
+
+        // Table Rows
+        let currentY = tableTop + 30;
+        doc.font('Helvetica');
+
+        order.files.forEach((file) => {
+            const fileName = file.originalName.length > 30 ? file.originalName.slice(0, 27) + '...' : file.originalName;
+            doc.text(fileName, 50, currentY);
+            doc.text(order.printOptions.pageRange || 'All', 250, currentY, { width: 50, align: 'center' });
+            doc.text(order.printOptions.copies.toString(), 300, currentY, { width: 50, align: 'center' });
+            doc.text(`${order.printOptions.mode} ${order.printOptions.side}`, 350, currentY, { width: 100, align: 'center' });
+
+            // Per file printing charge estimation
+            const fileCharge = (order.pricing.printingCharge / order.files.length).toFixed(2);
+            doc.text(`₹${fileCharge}`, 450, currentY, { width: 100, align: 'right' });
+
+            currentY += 20;
         });
-        doc.moveDown();
 
-        doc.text(`Mode: ${order.printOptions.mode}`);
-        doc.text(`Side: ${order.printOptions.side}`);
-        doc.text(`Binding: ${order.printOptions.binding}`);
-        doc.moveDown();
+        if (order.printOptions.binding !== 'None') {
+            doc.text(`Binding: ${order.printOptions.binding}`, 50, currentY);
+            doc.text(`₹${order.pricing.bindingCharge.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' });
+            currentY += 20;
+        }
 
-        doc.text('-----------------------------------');
-        doc.text(`Subtotal: ₹${(order.pricing.printingCharge + order.pricing.bindingCharge).toFixed(2)}`);
-        doc.text(`Delivery: ₹${order.pricing.deliveryCharge.toFixed(2)}`);
-        if (order.pricing.couponDiscount > 0) doc.text(`Discount: -₹${order.pricing.couponDiscount.toFixed(2)}`);
-        if (order.pricing.walletUsed > 0) doc.text(`Wallet: -₹${order.pricing.walletUsed.toFixed(2)}`);
-        doc.fontSize(10).text(`TOTAL: ₹${order.pricing.totalAmount.toFixed(2)}`, { bold: true });
-        doc.text('-----------------------------------');
-        doc.moveDown();
-        doc.fontSize(8).text('Thank you for your business!', { align: 'center' });
+        doc.moveTo(50, currentY).lineTo(550, currentY).strokeColor('#eeeeee').stroke();
+
+        // Summary
+        currentY += 15;
+        const summaryX = 350;
+
+        doc.text('Subtotal:', summaryX, currentY);
+        doc.text(`₹${(order.pricing.printingCharge + order.pricing.bindingCharge).toFixed(2)}`, 450, currentY, { width: 100, align: 'right' });
+
+        currentY += 20;
+        doc.text('Delivery Charge:', summaryX, currentY);
+        doc.text(`₹${order.pricing.deliveryCharge.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' });
+
+        if (order.pricing.couponDiscount > 0) {
+            currentY += 20;
+            doc.fillColor('#ea580c').text('Coupon Discount:', summaryX, currentY);
+            doc.text(`-₹${order.pricing.couponDiscount.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' }).fillColor('#000');
+        }
+
+        if (order.pricing.walletUsed > 0) {
+            currentY += 20;
+            doc.fillColor('#2563eb').text('Wallet Used:', summaryX, currentY);
+            doc.text(`-₹${order.pricing.walletUsed.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' }).fillColor('#000');
+        }
+
+        currentY += 30;
+        doc.font('Helvetica-Bold').fontSize(14);
+        doc.text('TOTAL AMOUNT:', summaryX, currentY);
+        doc.text(`₹${order.pricing.totalAmount.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' });
+
+        // Footer
+        const footerY = 750;
+        doc.fontSize(10).font('Helvetica-Bold').text(shop.tagline, 50, footerY, { align: 'center', width: 500 });
+        doc.fontSize(8).font('Helvetica').fillColor('#777777').text('This is a computer-generated invoice and does not require a signature.', 50, footerY + 15, { align: 'center', width: 500 });
+        doc.text('Thank you for choosing Print Express!', 50, footerY + 30, { align: 'center', width: 500 });
 
         doc.end();
     } catch (error) {
+        console.error("PDF Gen Error:", error);
         res.json({ success: false, message: error.message });
     }
 }

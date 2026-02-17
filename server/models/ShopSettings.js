@@ -6,6 +6,8 @@ const shopSettingsSchema = new mongoose.Schema({
     phone: { type: String, default: "" },
     email: { type: String, default: "" },
     whatsapp: { type: String, default: "" },
+    gstNumber: { type: String, default: "" },
+    tagline: { type: String, default: "Quality at Speed" },
     deliveryBaseCharge: { type: Number, default: 40 }
 }, { timestamps: true });
 

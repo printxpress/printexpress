@@ -162,29 +162,16 @@ const PrintPage = () => {
         const isDouble = options.side === 'Double';
         const isA3 = options.paperSize === 'A3';
 
-        // Dynamic Pricing Integration
-        const serviceName = isColor ? "Color A4 Print" : "B/W A4 Print";
-        const matchingService = services.find(s => s.name === serviceName);
-
-        // Base rate logic (Dynamic or Rule-based)
-        let rate;
+        // Primary Rate Logic based on Printing Rules
         const colorKey = isColor ? 'color' : 'bw';
         const sideKey = isDouble ? 'double' : 'single';
         const a3SideKey = isDouble ? 'a3_double' : 'a3_single';
 
-        if (matchingService) {
-            rate = Number(matchingService.price);
-            if (isDouble) {
-                const multiplier = (rules.printing[colorKey].double / rules.printing[colorKey].single) || 1;
-                rate *= multiplier;
-            }
-            if (isA3) rate *= 2;
+        let rate;
+        if (isA3) {
+            rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
         } else {
-            if (isA3) {
-                rate = rules.printing[colorKey][a3SideKey] || (rules.printing[colorKey][sideKey] * 2);
-            } else {
-                rate = rules.printing[colorKey][sideKey];
-            }
+            rate = rules.printing[colorKey][sideKey];
         }
 
         const printingCharge = effectivePages * rate * options.copies;
@@ -432,7 +419,7 @@ const PrintPage = () => {
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
                 {/* 1. Sidebar/Top Order Summary */}
-                <div className="order-first lg:order-last lg:col-span-1 space-y-6">
+                <div className="order-last lg:order-last lg:col-span-1 space-y-6">
                     <div className="card-premium p-6 lg:sticky lg:top-24 sticky top-0 z-10 space-y-6 border-2 border-blue-200 bg-gradient-to-br from-white to-blue-50 shadow-xl">
                         <h4 className="text-xl font-bold font-outfit text-center bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">Order Summary</h4>
 
@@ -452,12 +439,6 @@ const PrintPage = () => {
                                 </div>
                             )}
 
-                            {fulfillment === 'delivery' && (
-                                <div className="flex justify-between items-center pb-2 border-b border-blue-100/50 animate-in fade-in slide-in-from-top-1 duration-300">
-                                    <span className="text-text-muted">Weight</span>
-                                    <span className="font-bold text-blue-800">{pricing.weight?.toFixed(2) || 0} kg</span>
-                                </div>
-                            )}
 
                             {/* Detailed Summary only in Step 4 */}
                             {step === 4 && (
@@ -538,7 +519,7 @@ const PrintPage = () => {
                     </div>
 
                     <div className="card-premium p-6 flex flex-col items-center text-center space-y-2 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
-                        <p className="text-sm font-bold text-orange-800">💡 Need Help?</p>
+                        <p className="text-sm font-bold text-orange-800">💡 Need Support?</p>
                         <p className="text-xs text-text-muted">Confused about sides or binding? Chat with us on WhatsApp for instant assistance.</p>
                         <button className="text-orange-600 font-bold text-sm mt-2 flex items-center gap-2 hover:text-orange-700">WhatsApp Support 🔗</button>
                     </div>
@@ -620,7 +601,7 @@ const PrintPage = () => {
 
                             <div className="pt-4">
                                 <button onClick={nextStep} disabled={files.length === 0} className="w-full btn-primary py-4 flex items-center justify-center gap-2">
-                                    Continue to Print Options <span className="text-xl">→</span>
+                                    Next <span className="text-xl">→</span>
                                 </button>
                             </div>
                         </div>
@@ -816,7 +797,7 @@ const PrintPage = () => {
                             </div>
                             <div className="flex gap-4 pt-4">
                                 <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
-                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next Step →</button>
+                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
                             </div>
                         </div>
                     )}
@@ -1017,7 +998,7 @@ const PrintPage = () => {
                             )}
                             <div className="flex gap-4 pt-4">
                                 <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
-                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next Step →</button>
+                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
                             </div>
                         </div>
                     )}

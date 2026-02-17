@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAppContext } from '../../context/AppContext'
 import toast from 'react-hot-toast'
+import logo from '../../assets/logo.png'
 
 const Orders = () => {
     const { axios, sellerRole } = useAppContext()
@@ -192,7 +193,8 @@ const Orders = () => {
                 </head>
                 <body>
                     <div class="label-container">
-                        <div class="header">
+                        <div class="header" style="flex-direction: column; align-items: center; gap: 10px;">
+                            <img src="${logo}" style="height: 60px; object-fit: contain;" />
                             <span class="logo-text">PRINT <span class="logo-text-express">EXPRESS</span></span>
                         </div>
                         
@@ -286,9 +288,14 @@ const Orders = () => {
                             <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">ORDER CONTENT</p>
                             <div className="space-y-2 text-sm">
                                 <p className="font-medium">{order.printOptions.mode} | {order.printOptions.paperSize || 'A4'} | {order.printOptions.side} | {order.printOptions.binding} (x{order.printOptions.bindingQuantity || 1})</p>
-                                <p className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
-                                    📄 {order.printOptions.pageRangeType === 'Custom' ? `Custom: ${order.printOptions.customPages}` : 'All Pages'}
-                                </p>
+                                <div className="flex flex-wrap gap-2 items-center">
+                                    <p className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
+                                        📄 {order.printOptions.pageRangeType === 'Custom' ? `Custom: ${order.printOptions.customPages}` : 'All Pages'}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">
+                                        ⚖️ {order.pricing?.weight?.toFixed(2) || 0} kg
+                                    </p>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                     {order.files.map((file, fIdx) => (
                                         file.url ? (

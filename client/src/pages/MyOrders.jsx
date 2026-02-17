@@ -130,7 +130,12 @@ const MyOrders = () => {
                                             Pay Now 💳
                                         </button>
                                     )}
-                                    <button className="btn-outline flex-1 md:flex-none py-3 px-6 text-sm">Download Invoice</button>
+                                    <button
+                                        onClick={() => window.open(`${axios.defaults.baseURL}/api/order/thermal-bill/${order._id}`, '_blank')}
+                                        className="btn-outline flex-1 md:flex-none py-3 px-6 text-sm"
+                                    >
+                                        Download Invoice
+                                    </button>
                                     <button onClick={() => trackOnWA(order)} className="btn-primary flex-1 md:flex-none py-3 px-6 text-sm flex items-center justify-center gap-2">
                                         <span>Track on WA</span>
                                         <span className="bg-white/20 p-0.5 rounded-full text-white">💬</span>

@@ -2,10 +2,10 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 const services = [
-  { name: 'B/W Printing', icon: '📄', desc: 'Fast and crisp black & white document printing for all your needs.', price: 'From ₹2/page', link: '/print', color: 'blue' },
-  { name: 'Color Printing', icon: '🌈', desc: 'Vibrant, high-quality color prints to make your documents stand out.', price: 'From ₹10/page', link: '/print', color: 'orange' },
-  { name: 'Spiral Binding', icon: '📚', desc: 'Secure and professional spiral binding for reports, notebooks, and more.', price: 'From ₹50', link: '/print', color: 'purple' },
-  { name: 'Chart Binding', icon: '📊', desc: 'Specialized binding for large charts, maps, and engineering drawings.', price: 'From ₹150', link: '/print', color: 'green' },
+  { name: 'B/W Printing', icon: '📄', desc: 'Fast and crisp black & white document printing for all your needs.', price: 'From ₹0.75/page', link: '/print', color: 'blue' },
+  { name: 'Color Printing', icon: '🌈', desc: 'Vibrant, high-quality color prints to make your documents stand out.', price: 'From ₹8/page', link: '/print', color: 'orange' },
+  { name: 'Spiral Binding', icon: '📚', desc: 'Secure and professional spiral binding for reports, notebooks, and more.', price: 'From ₹15', link: '/print', color: 'purple' },
+  { name: 'Chart Binding', icon: '📊', desc: 'Specialized binding for large charts, maps, and engineering drawings.', price: 'From ₹10', link: '/print', color: 'green' },
   { name: 'Bulk Printing', icon: '🖨️', desc: 'Large volume printing for offices, schools, and events at discounted rates.', price: 'Custom Quote', link: '/print', color: 'red' },
   { name: 'Express Delivery', icon: '🚀', desc: 'Same-day printing and delivery to your doorstep across India.', price: 'From ₹40', link: '/print', color: 'teal' }
 ]

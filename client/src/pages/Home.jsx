@@ -5,7 +5,6 @@ import BottomBanner from '../components/BottomBanner'
 import DeliveryEstimator from '../components/DeliveryEstimator'
 import PricingTable from '../components/PricingTable'
 import PrintOptions from '../components/PrintOptions'
-import ScrollingBanner from '../components/ScrollingBanner'
 
 const Home = () => {
   return (
@@ -13,8 +12,6 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <MainBanner />
       </div>
-
-      <ScrollingBanner />
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-24">
 

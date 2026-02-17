@@ -84,6 +84,7 @@ const connectDB = async () => {
 
             // Connection Options for better stability
             const options = {
+                dbName: 'greencart',
                 serverSelectionTimeoutMS: 5000,
                 socketTimeoutMS: 45000,
             };

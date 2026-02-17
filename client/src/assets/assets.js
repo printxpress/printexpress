@@ -1,4 +1,10 @@
 import logo from "./logo.svg";
+import Banners1 from "./Banners1.JPG";
+import Banners2 from "./Banners2.JPG";
+import Banners3 from "./Banners3.JPG";
+import Banners4 from "./Banners4.JPG";
+import rubber_stamp from "./rubber_stamp.jpg";
+import anbu_card from "./anbu_card.jpg";
 import search_icon from "./search_icon.svg";
 import remove_icon from "./remove_icon.svg";
 import arrow_right_icon_colored from "./arrow_right_icon_colored.svg";
@@ -98,6 +104,12 @@ export const assets = {
   bottom_banner_image_sm,
   add_address_iamge,
   box_icon,
+  Banners1,
+  Banners2,
+  Banners3,
+  Banners4,
+  rubber_stamp,
+  anbu_card,
 };
 
 export const categories = [

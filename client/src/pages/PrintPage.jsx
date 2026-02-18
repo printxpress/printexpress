@@ -210,13 +210,7 @@ const PrintPage = () => {
             // Staple is per-sheet, not per-copy
         }
 
-        let bindCharge;
-        if (options.binding === 'Staple') {
-            // Staple: ₹0.30 per sheet (total sheets across all copies)
-            bindCharge = bindBase * (billingSheets * options.copies);
-        } else {
-            bindCharge = bindBase * (options.bindingQuantity || 1);
-        }
+        bindCharge = bindBase * (options.bindingQuantity || 1);
 
         // Tiered Delivery Logic (Deferred until Step 4 and Pincode provided)
         let deliveryCharge = 0;
@@ -579,21 +573,21 @@ const PrintPage = () => {
                             </div>
 
                             <div className="grid grid-cols-3 gap-3">
-                                <label className="border-2 border-dashed border-blue-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
-                                    <div className="w-12 h-12 flex items-center justify-center">
+                                <label className="border-2 border-dashed border-blue-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
+                                    <div className="w-16 h-16 md:w-12 md:h-12 flex items-center justify-center">
                                         <img src={assets.cardicons5} alt="PDF" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
                                     </div>
-                                    <span className="text-[9px] font-bold text-center uppercase">PDF</span>
+                                    <span className="text-[10px] md:text-[9px] font-bold text-center uppercase">PDF</span>
                                     <input type="file" className="hidden" multiple accept=".pdf,application/pdf" onChange={handleFileChange} />
                                 </label>
-                                <label className="border-2 border-dashed border-orange-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-orange-50 hover:border-orange-500 transition-all group">
-                                    <span className="text-2xl group-hover:scale-110 transition-transform">🖼️</span>
-                                    <span className="text-[9px] font-bold text-center uppercase">Images</span>
+                                <label className="border-2 border-dashed border-orange-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-orange-50 hover:border-orange-500 transition-all group">
+                                    <span className="text-3xl md:text-2xl group-hover:scale-110 transition-transform">🖼️</span>
+                                    <span className="text-[10px] md:text-[9px] font-bold text-center uppercase">Images</span>
                                     <input type="file" className="hidden" multiple accept="image/*" onChange={handleFileChange} />
                                 </label>
-                                <label className="border-2 border-dashed border-purple-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-purple-50 hover:border-purple-500 transition-all group">
-                                    <span className="text-2xl group-hover:scale-110 transition-transform">📁</span>
-                                    <span className="text-[9px] font-bold text-center uppercase">All</span>
+                                <label className="border-2 border-dashed border-purple-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-purple-50 hover:border-purple-500 transition-all group">
+                                    <span className="text-3xl md:text-2xl group-hover:scale-110 transition-transform">📁</span>
+                                    <span className="text-[10px] md:text-[9px] font-bold text-center uppercase">All</span>
                                     <input type="file" className="hidden" multiple onChange={handleFileChange} />
                                 </label>
                             </div>
@@ -837,45 +831,45 @@ const PrintPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Loose Papers' })}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 ${options.binding === 'Loose Papers'
+                                            className={`p-3 md:p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-2 md:gap-1 ${options.binding === 'Loose Papers'
                                                 ? 'bg-slate-50 border-slate-600'
                                                 : 'bg-white border-slate-100 hover:border-slate-300'
                                                 }`}
                                         >
-                                            <div className="w-8 h-8 flex items-center justify-center text-xl">📄</div>
-                                            <span className="text-[10px] text-center">Loose Papers</span>
+                                            <div className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-2xl md:text-xl">📄</div>
+                                            <span className="text-[11px] md:text-[10px] text-center">Loose Papers</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => canStaple && setOptions({ ...options, binding: 'Staple' })}
                                             disabled={!canStaple}
                                             title={!canStaple ? `Staple only available for ≤50 sheets (current: ${totalBillingSheets})` : 'Staple Binding'}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 ${!canStaple
+                                            className={`p-3 md:p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-2 md:gap-1 ${!canStaple
                                                 ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200'
                                                 : options.binding === 'Staple'
                                                     ? 'bg-purple-50 border-purple-600'
                                                     : 'bg-white border-slate-100 hover:border-purple-300'
                                                 }`}
                                         >
-                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                            <div className="w-10 h-10 md:w-8 md:h-8 rounded overflow-hidden">
                                                 <img src={assets.cardicons7} alt="Staple" className="w-full h-full object-contain" />
                                             </div>
-                                            <span className="text-[10px] text-center">Staple</span>
+                                            <span className="text-[11px] md:text-[10px] text-center">Staple</span>
                                             {!canStaple && <span className="text-[8px] text-red-400">&gt;50 sheets</span>}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Spiral' })}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group relative ${options.binding === 'Spiral'
+                                            className={`p-3 md:p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-2 md:gap-1 group relative ${options.binding === 'Spiral'
                                                 ? 'bg-blue-50 border-blue-600'
                                                 : 'bg-white border-slate-100 hover:border-blue-300'
                                                 }`}
                                         >
                                             <div className="absolute top-0 right-0 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl-lg z-10">₹{options.paperSize === 'A3' ? 40 : 15}</div>
-                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                            <div className="w-10 h-10 md:w-8 md:h-8 rounded overflow-hidden">
                                                 <img src={assets.spiral_binding_icon} alt="Spiral" className="w-full h-full object-cover" />
                                             </div>
-                                            <span className="text-[10px]">Spiral</span>
+                                            <span className="text-[11px] md:text-[10px]">Spiral</span>
                                             {options.binding === 'Spiral' && totalBillingSheets > 300 && (
                                                 <span className="text-[7px] text-red-500 font-bold uppercase absolute -top-1 bg-red-50 px-1 border border-red-200 rounded">Limit 300</span>
                                             )}
@@ -883,19 +877,19 @@ const PrintPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Chart' })}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group relative ${options.binding === 'Chart'
+                                            className={`p-3 md:p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-2 md:gap-1 group relative ${options.binding === 'Chart'
                                                 ? 'bg-orange-50 border-orange-600'
                                                 : 'bg-white border-slate-100 hover:border-orange-300'
                                                 }`}
                                         >
                                             <div className="absolute top-0 right-0 bg-orange-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl-lg z-10">₹{options.paperSize === 'A3' ? 20 : 10}</div>
-                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                            <div className="w-10 h-10 md:w-8 md:h-8 rounded overflow-hidden">
                                                 <img src={assets.chart_binding_icon} alt="Chart" className="w-full h-full object-cover" />
                                             </div>
-                                            <span className="text-[10px]">Chart</span>
+                                            <span className="text-[11px] md:text-[10px]">Chart</span>
                                         </button>
                                     </div>
-                                    {options.binding !== 'Loose Papers' && options.binding !== 'Staple' && (
+                                    {options.binding !== 'Loose Papers' && (
                                         <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
                                             <label className="text-[10px] font-bold text-text-muted uppercase">Binding Qty:</label>
                                             <div className="flex items-center gap-2">

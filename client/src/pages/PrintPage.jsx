@@ -210,7 +210,7 @@ const PrintPage = () => {
             // Staple is per-sheet, not per-copy
         }
 
-        bindCharge = bindBase * (options.bindingQuantity || 1);
+        const bindCharge = bindBase * (options.bindingQuantity || 1);
 
         // Tiered Delivery Logic (Deferred until Step 4 and Pincode provided)
         let deliveryCharge = 0;

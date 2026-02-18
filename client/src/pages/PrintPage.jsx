@@ -196,10 +196,15 @@ const PrintPage = () => {
         const printCharge = printingCharge;
 
         let bindBase = 0;
+        const totalSheets = billingSheets * (options.copies || 1);
+
         if (options.binding === 'Spiral') {
-            bindBase = options.paperSize === 'A3' ? 40 : (rules.additional?.binding || 15);
+            bindBase = options.paperSize === 'A3' ? 40 : 15;
+            if (totalSheets > 300) {
+                // We'll handle the warning display outside this useEffect or by a state
+            }
         } else if (options.binding === 'Chart') {
-            bindBase = options.paperSize === 'A3' ? 20 : (rules.additional?.chart_binding || 10);
+            bindBase = options.paperSize === 'A3' ? 20 : 10;
         } else if (options.binding === 'Staple') {
             bindBase = rules.additional?.staple_binding || 0.30;
             // Staple is per-sheet, not per-copy
@@ -222,8 +227,6 @@ const PrintPage = () => {
         if (options.binding === 'Spiral') bindWeight = 0.1 * (options.bindingQuantity || 1);
         else if (options.binding === 'Chart') bindWeight = 0.05 * (options.bindingQuantity || 1);
         else if (options.binding === 'Staple') bindWeight = 0.01 * (options.bindingQuantity || 1);
-
-        const totalSheets = billingSheets * (options.copies || 1);
 
         // Weight Calculation: paper only (1 kg per 200 sheets, rounded up)
         const calcWeight = Math.ceil(totalSheets / 200);
@@ -558,7 +561,7 @@ const PrintPage = () => {
                     <div className="card-premium p-6 flex flex-col items-center text-center space-y-2 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-white">
                         <p className="text-sm font-bold text-orange-800">💡 Need Support?</p>
                         <p className="text-xs text-text-muted">Confused about sides or binding? Chat with us on WhatsApp for instant assistance.</p>
-                        <button className="text-orange-600 font-bold text-sm mt-2 flex items-center gap-2 hover:text-orange-700">WhatsApp Support 🔗</button>
+                        <button type="button" className="text-orange-600 font-bold text-sm mt-2 flex items-center gap-2 hover:text-orange-700">WhatsApp Support 🔗</button>
                     </div>
                 </div>
 
@@ -577,7 +580,9 @@ const PrintPage = () => {
 
                             <div className="grid grid-cols-3 gap-3">
                                 <label className="border-2 border-dashed border-blue-300 rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
-                                    <span className="text-2xl group-hover:scale-110 transition-transform">📄</span>
+                                    <div className="w-12 h-12 flex items-center justify-center">
+                                        <img src={assets.cardicons5} alt="PDF" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
+                                    </div>
                                     <span className="text-[9px] font-bold text-center uppercase">PDF</span>
                                     <input type="file" className="hidden" multiple accept=".pdf,application/pdf" onChange={handleFileChange} />
                                 </label>
@@ -637,7 +642,7 @@ const PrintPage = () => {
                             )}
 
                             <div className="pt-4">
-                                <button onClick={nextStep} disabled={files.length === 0} className="w-full btn-primary py-4 flex items-center justify-center gap-2">
+                                <button type="button" onClick={nextStep} disabled={files.length === 0} className="w-full btn-primary py-4 flex items-center justify-center gap-2">
                                     Next <span className="text-xl">→</span>
                                 </button>
                             </div>
@@ -656,6 +661,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Printing Mode</label>
                                     <div className="flex gap-4">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, mode: 'B/W' })}
                                             className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'B/W'
                                                 ? 'bg-blue-50 border-blue-600 shadow-md ring-2 ring-blue-600/20'
@@ -668,6 +674,7 @@ const PrintPage = () => {
                                             <span className={`text-xs ${options.mode === 'B/W' ? 'text-blue-800' : 'text-slate-600'}`}>B/W Print</span>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, mode: 'Color' })}
                                             className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'Color'
                                                 ? 'bg-orange-50 border-orange-600 shadow-md ring-2 ring-orange-600/20'
@@ -692,6 +699,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Pages to Print</label>
                                     <div className="flex gap-2">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, pageRangeType: 'All', customPages: '' })}
                                             className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold text-xs ${options.pageRangeType === 'All'
                                                 ? 'bg-blue-600 text-white border-blue-800'
@@ -701,6 +709,7 @@ const PrintPage = () => {
                                             All Pages ({docPages})
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, pageRangeType: 'Custom' })}
                                             className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold text-xs ${options.pageRangeType === 'Custom'
                                                 ? 'bg-blue-600 text-white border-blue-800'
@@ -734,6 +743,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Pages per Sheet</label>
                                     <div className="flex gap-4">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, pagesPerSheet: 1 })}
                                             className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.pagesPerSheet === 1
                                                 ? 'bg-blue-50 border-blue-600 shadow-md'
@@ -751,6 +761,7 @@ const PrintPage = () => {
                                         </button>
 
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, pagesPerSheet: 2, orientation: 'Landscape' })}
                                             className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group relative overflow-hidden ${options.pagesPerSheet === 2
                                                 ? 'bg-green-50 border-green-600 shadow-md'
@@ -773,6 +784,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Copies</label>
                                     <div className="flex items-center gap-4">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, copies: Math.max(1, options.copies - 1) })}
                                             className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 flex items-center justify-center font-bold text-blue-800 transition-all"
                                         >
@@ -786,6 +798,7 @@ const PrintPage = () => {
                                             className="text-2xl font-bold w-16 text-center bg-transparent border-none focus:ring-0 p-0 appearance-none m-0"
                                         />
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, copies: options.copies + 1 })}
                                             className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 flex items-center justify-center font-bold text-blue-800 transition-all"
                                         >
@@ -797,6 +810,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Paper Size</label>
                                     <div className="flex gap-2">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, paperSize: 'A4' })}
                                             className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold ${options.paperSize === 'A4'
                                                 ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
@@ -806,6 +820,7 @@ const PrintPage = () => {
                                             A4 (Standard)
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, paperSize: 'A3' })}
                                             className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold ${options.paperSize === 'A3'
                                                 ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
@@ -820,6 +835,7 @@ const PrintPage = () => {
                                     <label className="text-sm font-semibold text-text-muted">Binding Style</label>
                                     <div className="grid grid-cols-4 gap-2">
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Loose Papers' })}
                                             className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 ${options.binding === 'Loose Papers'
                                                 ? 'bg-slate-50 border-slate-600'
@@ -830,6 +846,7 @@ const PrintPage = () => {
                                             <span className="text-[10px] text-center">Loose Papers</span>
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => canStaple && setOptions({ ...options, binding: 'Staple' })}
                                             disabled={!canStaple}
                                             title={!canStaple ? `Staple only available for ≤50 sheets (current: ${totalBillingSheets})` : 'Staple Binding'}
@@ -840,29 +857,38 @@ const PrintPage = () => {
                                                     : 'bg-white border-slate-100 hover:border-purple-300'
                                                 }`}
                                         >
-                                            <div className="w-8 h-8 flex items-center justify-center text-xl">📌</div>
+                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                                <img src={assets.cardicons7} alt="Staple" className="w-full h-full object-contain" />
+                                            </div>
                                             <span className="text-[10px] text-center">Staple</span>
                                             {!canStaple && <span className="text-[8px] text-red-400">&gt;50 sheets</span>}
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Spiral' })}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group ${options.binding === 'Spiral'
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group relative ${options.binding === 'Spiral'
                                                 ? 'bg-blue-50 border-blue-600'
                                                 : 'bg-white border-slate-100 hover:border-blue-300'
                                                 }`}
                                         >
+                                            <div className="absolute top-0 right-0 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl-lg z-10">₹{options.paperSize === 'A3' ? 40 : 15}</div>
                                             <div className="w-8 h-8 rounded overflow-hidden">
                                                 <img src={assets.spiral_binding_icon} alt="Spiral" className="w-full h-full object-cover" />
                                             </div>
                                             <span className="text-[10px]">Spiral</span>
+                                            {options.binding === 'Spiral' && totalBillingSheets > 300 && (
+                                                <span className="text-[7px] text-red-500 font-bold uppercase absolute -top-1 bg-red-50 px-1 border border-red-200 rounded">Limit 300</span>
+                                            )}
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => setOptions({ ...options, binding: 'Chart' })}
-                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group ${options.binding === 'Chart'
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group relative ${options.binding === 'Chart'
                                                 ? 'bg-orange-50 border-orange-600'
                                                 : 'bg-white border-slate-100 hover:border-orange-300'
                                                 }`}
                                         >
+                                            <div className="absolute top-0 right-0 bg-orange-600 text-white text-[8px] px-1.5 py-0.5 rounded-bl-lg z-10">₹{options.paperSize === 'A3' ? 20 : 10}</div>
                                             <div className="w-8 h-8 rounded overflow-hidden">
                                                 <img src={assets.chart_binding_icon} alt="Chart" className="w-full h-full object-cover" />
                                             </div>
@@ -873,7 +899,7 @@ const PrintPage = () => {
                                         <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
                                             <label className="text-[10px] font-bold text-text-muted uppercase">Binding Qty:</label>
                                             <div className="flex items-center gap-2">
-                                                <button onClick={() => setOptions({ ...options, bindingQuantity: Math.max(1, options.bindingQuantity - 1) })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">-</button>
+                                                <button type="button" onClick={() => setOptions({ ...options, bindingQuantity: Math.max(1, options.bindingQuantity - 1) })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">-</button>
                                                 <input
                                                     type="number"
                                                     min="1"
@@ -881,7 +907,7 @@ const PrintPage = () => {
                                                     onChange={(e) => setOptions({ ...options, bindingQuantity: Math.max(1, parseInt(e.target.value) || 1) })}
                                                     className="text-xs font-bold w-8 text-center bg-transparent border-b border-slate-300 focus:border-blue-500 focus:outline-none p-0"
                                                 />
-                                                <button onClick={() => setOptions({ ...options, bindingQuantity: options.bindingQuantity + 1 })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">+</button>
+                                                <button type="button" onClick={() => setOptions({ ...options, bindingQuantity: options.bindingQuantity + 1 })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">+</button>
                                             </div>
                                         </div>
                                     )}
@@ -897,8 +923,8 @@ const PrintPage = () => {
                                 </div>
                             </div>
                             <div className="flex gap-4 pt-4">
-                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
-                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
+                                <button type="button" onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
+                                <button type="button" onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
                             </div>
                         </div>
                     )}
@@ -913,6 +939,7 @@ const PrintPage = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <button
+                                    type="button"
                                     onClick={() => setFulfillment('delivery')}
                                     className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 relative overflow-hidden ${fulfillment === 'delivery'
                                         ? 'border-blue-600 bg-blue-50 shadow-lg shadow-blue-100'
@@ -933,6 +960,7 @@ const PrintPage = () => {
                                     </p>
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setFulfillment('pickup')}
                                     className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${fulfillment === 'pickup'
                                         ? 'border-green-600 bg-green-50 shadow-lg shadow-green-100'
@@ -964,6 +992,7 @@ const PrintPage = () => {
                                                 <p className="text-xs text-green-700 font-bold mt-1">📞 {delivery.phone}</p>
                                             </div>
                                             <button
+                                                type="button"
                                                 onClick={() => setIsEditingAddress(true)}
                                                 className="text-xs font-bold text-blue-600 hover:text-blue-800 underline bg-white px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
                                             >
@@ -975,6 +1004,7 @@ const PrintPage = () => {
                                         <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 relative">
                                             {user?.address && (
                                                 <button
+                                                    type="button"
                                                     onClick={() => setIsEditingAddress(false)}
                                                     className="absolute top-4 right-4 text-[10px] font-bold text-slate-500 hover:text-slate-800 border-b border-slate-300"
                                                 >
@@ -1103,8 +1133,8 @@ const PrintPage = () => {
                                 </div>
                             )}
                             <div className="flex gap-4 pt-4">
-                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
-                                <button onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
+                                <button type="button" onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
+                                <button type="button" onClick={nextStep} className="flex-[2] btn-primary py-4">Next →</button>
                             </div>
                         </div>
                     )}
@@ -1125,6 +1155,7 @@ const PrintPage = () => {
                                     { id: 'UPI+Wallet', icon: '💳', label: 'UPI + Wallet', desc: 'Split payment' },
                                 ].map(pm => (
                                     <button
+                                        type="button"
                                         key={pm.id}
                                         onClick={() => {
                                             setPaymentMethod(pm.id);
@@ -1191,7 +1222,7 @@ const PrintPage = () => {
                                 )}
                             </div>
                             <div className="flex gap-4 pt-4">
-                                <button onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
+                                <button type="button" onClick={prevStep} className="flex-1 btn-secondary py-4">← Previous</button>
                             </div>
                         </div>
                     )}

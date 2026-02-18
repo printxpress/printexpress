@@ -81,6 +81,14 @@ import money_saver_icon from "./Money saver copy.jpg";
 import standard_print_icon from "./page per sheet standart copy.jpg";
 import spiral_binding_icon from "./spiral copy.jpg";
 import chart_binding_icon from "./chart copy.jpg";
+import cardicons1 from "./cardicons1.jpeg";
+import cardicons2 from "./cardicons2.jpeg";
+import cardicons3 from "./cardicons3.jpeg";
+import cardicons4 from "./cardicons4.jpeg";
+import cardicons5 from "./cardicons5.jpeg";
+import cardicons6 from "./cardicons6.jpeg";
+import cardicons7 from "./cardicons7.jpeg";
+import cardicons8 from "./cardicons8.jpeg";
 
 export const assets = {
   logo,
@@ -122,6 +130,14 @@ export const assets = {
   standard_print_icon,
   spiral_binding_icon,
   chart_binding_icon,
+  cardicons1,
+  cardicons2,
+  cardicons3,
+  cardicons4,
+  cardicons5,
+  cardicons6,
+  cardicons7,
+  cardicons8,
 };
 
 export const categories = [

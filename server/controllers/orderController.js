@@ -67,7 +67,10 @@ export const placePrintOrder = async (req, res) => {
         ]);
 
         const rules = pricingData ? pricingData.rules : {
-            printing: { bw: { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 }, color: { single: 8, double: 8, a3_single: 20, a3_double: 20 } },
+            printing: {
+                bw: { single: 0.75, double: 0.5, a3_single: 2, a3_double: 1.5 },
+                color: { single: 8, double: 8, a3_single: 20, a3_double: 20 }
+            },
             additional: { binding: 15, chart_binding: 10, hard_binding: 200, handling_fee: 10 },
             delivery_tiers: {
                 tier_a: { maxWeight: 3, rate: 35, slip: 0 },
@@ -101,7 +104,7 @@ export const placePrintOrder = async (req, res) => {
         // Apply Pages per Sheet Logic (Backend Sync)
         const effectivePages = printOptions.pagesPerSheet === 2 ? Math.ceil(totalPages / 2) : totalPages;
 
-        const printingCharge = effectivePages * (rate || (isColor ? 10 : 2)) * (printOptions.copies || 1);
+        const printingCharge = effectivePages * (rate || (isColor ? 8 : 0.75)) * (printOptions.copies || 1);
         const billingSheets = isDouble ? Math.ceil(effectivePages / 2) : effectivePages;
 
         let bindingCharge = 0;
@@ -357,10 +360,12 @@ export const updateOrderAndRecalculate = async (req, res) => {
         let bindingCharge = 0;
         let bindingWeight = 0;
         if (printOptions.binding === 'Spiral') {
-            bindingCharge = (rules.additional.binding || 15) * (printOptions.bindingQuantity || 1);
+            const spiralRate = isA3 ? 40 : (rules.additional.binding || 15);
+            bindingCharge = spiralRate * (printOptions.bindingQuantity || 1);
             bindingWeight = 0.1 * (printOptions.bindingQuantity || 1);
         } else if (printOptions.binding === 'Chart') {
-            bindingCharge = (rules.additional.chart_binding || 10) * (printOptions.bindingQuantity || 1);
+            const chartRate = isA3 ? 20 : (rules.additional.chart_binding || 10);
+            bindingCharge = chartRate * (printOptions.bindingQuantity || 1);
             bindingWeight = 0.05 * (printOptions.bindingQuantity || 1);
         } else if (printOptions.binding === 'Staple') {
             const stapleRate = rules.additional?.staple_binding || 0.30;

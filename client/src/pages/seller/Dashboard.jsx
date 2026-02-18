@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Link } from 'react-router-dom';
+import { assets } from '../../assets/assets';
 
 const Dashboard = () => {
     const { axios } = useAppContext();
@@ -82,7 +83,7 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Total Revenue</p>
-                        <span className="text-2xl">💰</span>
+                        <img src={assets.cardicons3} alt="" className="w-8 h-8 object-contain" />
                     </div>
                     <p className="text-3xl font-bold font-outfit text-green-600">₹{totalRevenue.toLocaleString()}</p>
                     <p className="text-xs text-text-muted">{orders.length} orders total</p>
@@ -90,7 +91,7 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Print Online</p>
-                        <span className="text-2xl">🌐</span>
+                        <img src={assets.cardicons1} alt="" className="w-8 h-8 object-contain" />
                     </div>
                     <p className="text-3xl font-bold font-outfit text-primary">{onlineOrdersCount}</p>
                     <p className="text-xs text-blue-600">{pendingOrders.length} pending</p>
@@ -98,7 +99,7 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">POS Sales</p>
-                        <span className="text-2xl">📟</span>
+                        <img src={assets.cardicons2} alt="" className="w-8 h-8 object-contain" />
                     </div>
                     <p className="text-3xl font-bold font-outfit text-purple-600">{posOrdersCount}</p>
                     <p className="text-xs text-purple-600">Walk-in transactions</p>
@@ -106,7 +107,7 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Customers</p>
-                        <span className="text-2xl">👥</span>
+                        <img src={assets.cardicons4} alt="" className="w-8 h-8 object-contain" />
                     </div>
                     <p className="text-3xl font-bold font-outfit text-orange-600">{customers.length}</p>
                     <p className="text-xs text-orange-600">Registered users</p>

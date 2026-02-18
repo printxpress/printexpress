@@ -23,32 +23,32 @@ const PricingTable = () => {
     const services = [
         {
             name: "Black & White Printing",
-            desc: "Standard A4 crisp document printing",
-            price: rules?.printing?.bw?.single || 2,
+            desc: "A4: ₹0.75 | A3: ₹2.00 (Standard Rates)",
+            price: rules?.printing?.bw?.single || 0.75,
             unit: "page",
             icon: "📄",
             color: "bg-slate-100 text-slate-700"
         },
         {
             name: "Color Printing",
-            desc: "Vibrant high-resolution laser prints",
-            price: rules?.printing?.color?.single || 10,
+            desc: "A4: ₹8.00 | A3: ₹20.00 (Vibrant Laser)",
+            price: rules?.printing?.color?.single || 8.0,
             unit: "page",
             icon: "🌈",
             color: "bg-blue-100 text-blue-700"
         },
         {
             name: "Spiral Binding",
-            desc: "Durable binding for notes & documents",
-            price: rules?.additional?.binding || 50,
+            desc: "A4: ₹15 | A3: ₹40 (Up to 300 sheets)",
+            price: rules?.additional?.binding || 15,
             unit: "book",
             icon: "📚",
             color: "bg-orange-100 text-orange-700"
         },
         {
             name: "Chart Binding",
-            desc: "Professional chart & presentation binding",
-            price: rules?.additional?.chart_binding || 150,
+            desc: "A4: ₹10 | A3: ₹20 (Professional Finish)",
+            price: rules?.additional?.chart_binding || 10,
             unit: "set",
             icon: "📊",
             color: "bg-purple-100 text-purple-700"

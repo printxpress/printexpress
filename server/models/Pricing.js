@@ -21,6 +21,7 @@ const pricingSchema = new mongoose.Schema({
             binding: { type: Number, default: 15 },
             hard_binding: { type: Number, default: 200 },
             chart_binding: { type: Number, default: 10 },
+            staple_binding: { type: Number, default: 0.30 },
             handling_fee: { type: Number, default: 10 }
         },
         delivery_tiers: {

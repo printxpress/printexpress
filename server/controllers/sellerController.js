@@ -119,7 +119,7 @@ export const getSellerAnalytics = async (req, res) => {
         const servicesStats = {
             'B/W Printing': orders.filter(o => o.printOptions.mode === 'B/W').length,
             'Color Printing': orders.filter(o => o.printOptions.mode === 'Color').length,
-            'Binding': orders.filter(o => o.printOptions.binding !== 'None').length,
+            'Binding': orders.filter(o => o.printOptions.binding !== 'Loose Papers').length,
             'POS Services': orders.filter(o => o.files.some(f => f.fileType === 'POS Service')).length
         };
 
@@ -130,7 +130,7 @@ export const getSellerAnalytics = async (req, res) => {
                 if (name === 'POS Services') return o.files.some(f => f.fileType === 'POS Service');
                 if (name === 'B/W Printing') return o.printOptions.mode === 'B/W' && !o.files.some(f => f.fileType === 'POS Service');
                 if (name === 'Color Printing') return o.printOptions.mode === 'Color' && !o.files.some(f => f.fileType === 'POS Service');
-                if (name === 'Binding') return o.printOptions.binding !== 'None' && !o.files.some(f => f.fileType === 'POS Service');
+                if (name === 'Binding') return o.printOptions.binding !== 'Loose Papers' && !o.files.some(f => f.fileType === 'POS Service');
                 return false;
             }).reduce((acc, o) => acc + (o.pricing.totalAmount || 0), 0),
             color: name === 'B/W Printing' ? 'blue' : (name === 'Color Printing' ? 'orange' : (name === 'Binding' ? 'green' : 'purple'))

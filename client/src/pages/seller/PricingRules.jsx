@@ -22,6 +22,7 @@ const PricingRules = () => {
                         binding: fetchedRules.additional?.binding || 15,
                         hard_binding: fetchedRules.additional?.hard_binding || 200,
                         chart_binding: fetchedRules.additional?.chart_binding || 10,
+                        staple_binding: fetchedRules.additional?.staple_binding || 0.30,
                         handling_fee: fetchedRules.additional?.handling_fee || 10
                     },
                     delivery: fetchedRules.delivery || 40,
@@ -148,29 +149,37 @@ const PricingRules = () => {
                 {/* Additional Charges */}
                 <div className="card-premium p-8 space-y-6 md:col-span-2">
                     <h3 className="font-bold">Other Services & Fees</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-text-muted uppercase">Spiral Binding</label>
+                            <label className="text-xs font-bold text-text-muted uppercase">Spiral Binding (per copy)</label>
                             <input
                                 value={rules.additional.binding}
                                 onChange={(e) => setRules({ ...rules, additional: { ...rules.additional, binding: Number(e.target.value) } })}
-                                type="number" className="input-field"
+                                type="number" step="0.01" className="input-field"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-text-muted uppercase">Hard Binding</label>
+                            <label className="text-xs font-bold text-text-muted uppercase">Hard Binding (per copy)</label>
                             <input
                                 value={rules.additional.hard_binding}
                                 onChange={(e) => setRules({ ...rules, additional: { ...rules.additional, hard_binding: Number(e.target.value) } })}
-                                type="number" className="input-field"
+                                type="number" step="0.01" className="input-field"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-text-muted uppercase">Chart Binding</label>
+                            <label className="text-xs font-bold text-text-muted uppercase">Chart Binding (per copy)</label>
                             <input
                                 value={rules.additional.chart_binding}
                                 onChange={(e) => setRules({ ...rules, additional: { ...rules.additional, chart_binding: Number(e.target.value) } })}
-                                type="number" className="input-field"
+                                type="number" step="0.01" className="input-field"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-muted uppercase">Staple Binding (per sheet ₹)</label>
+                            <input
+                                value={rules.additional.staple_binding}
+                                onChange={(e) => setRules({ ...rules, additional: { ...rules.additional, staple_binding: Number(e.target.value) } })}
+                                type="number" step="0.01" className="input-field"
                             />
                         </div>
                         <div className="space-y-2">
@@ -178,7 +187,7 @@ const PricingRules = () => {
                             <input
                                 value={rules.additional.handling_fee}
                                 onChange={(e) => setRules({ ...rules, additional: { ...rules.additional, handling_fee: Number(e.target.value) } })}
-                                type="number" className="input-field"
+                                type="number" step="0.01" className="input-field"
                             />
                         </div>
                     </div>

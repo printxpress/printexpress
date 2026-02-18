@@ -17,6 +17,7 @@ export const getPricing = async (req, res) => {
                         binding: 15,
                         hard_binding: 200,
                         chart_binding: 10,
+                        staple_binding: 0.30,
                         handling_fee: 10
                     },
                     delivery_tiers: {

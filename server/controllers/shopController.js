@@ -5,13 +5,15 @@ export const getShopSettings = async (req, res) => {
     try {
         let settings = await ShopSettings.findOne({});
         if (!settings) {
-            // Seed default settings if none exist
+            // Seed AnbuDigital default settings
             settings = await ShopSettings.create({
-                name: "Print Express",
-                address: "Print Express Store, Coimbatore",
-                phone: "9876543210",
-                email: "support@printexpress.in",
-                whatsapp: "9876543210",
+                name: "AnbuDigital",
+                address: "Bengaluru Main Road, Theruvalluvar Nagar, Chengam 606701",
+                phone: "9894957422",
+                email: "",
+                whatsapp: "919894957422",
+                tagline: "Quality at Speed",
+                locationUrl: "",
                 deliveryBaseCharge: 40
             });
         }
@@ -24,13 +26,25 @@ export const getShopSettings = async (req, res) => {
 // Update Shop Settings : /api/shop/update
 export const updateShopSettings = async (req, res) => {
     try {
-        const { name, address, phone, email, whatsapp, deliveryBaseCharge } = req.body;
+        const { name, address, phone, email, whatsapp, gstNumber, tagline, locationUrl, deliveryBaseCharge } = req.body;
+
+        // Validate phone
+        if (phone && !/^\d{10,15}$/.test(phone.replace(/\s/g, ''))) {
+            return res.json({ success: false, message: "Invalid phone number format" });
+        }
+
+        // Validate locationUrl if provided
+        if (locationUrl && locationUrl.trim() !== '') {
+            try {
+                new URL(locationUrl);
+            } catch {
+                return res.json({ success: false, message: "Invalid location URL format" });
+            }
+        }
+
         const settings = await ShopSettings.findOneAndUpdate({}, {
-            name,
-            address,
-            phone,
-            email,
-            whatsapp,
+            name, address, phone, email, whatsapp, gstNumber, tagline,
+            locationUrl: locationUrl || '',
             deliveryBaseCharge
         }, { new: true, upsert: true });
 

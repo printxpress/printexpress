@@ -87,6 +87,19 @@ export const AppContextProvider = ({ children }) => {
         }
     }
 
+    const [shopSettings, setShopSettings] = useState(null)
+
+    const fetchShopSettings = async () => {
+        try {
+            const { data } = await axios.get('/api/shop/settings')
+            if (data.success) {
+                setShopSettings(data.settings)
+            }
+        } catch (error) {
+            console.error(error.message)
+        }
+    }
+
     // Simple Cart Helpers (Keeping for compatibility)
     const addToCart = (itemId) => {
         let cartData = structuredClone(cartItems);
@@ -132,11 +145,12 @@ export const AppContextProvider = ({ children }) => {
         fetchPricing()
         fetchProducts()
         fetchServices()
+        fetchShopSettings()
     }, [])
 
     const value = {
         navigate, user, setUser, setIsSeller, isSeller, sellerRole, setSellerRole,
-        showUserLogin, setShowUserLogin, products, services, currency, addToCart, updateCartItem, removeFromCart, cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts, fetchServices, setCartItems, pricingRules
+        showUserLogin, setShowUserLogin, products, services, currency, addToCart, updateCartItem, removeFromCart, cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts, fetchServices, setCartItems, pricingRules, shopSettings, fetchShopSettings
     }
 
     return <AppContext.Provider value={value}>

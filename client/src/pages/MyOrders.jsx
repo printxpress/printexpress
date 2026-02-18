@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 const MyOrders = () => {
 
     const [myOrders, setMyOrders] = useState([])
+    const [shop, setShop] = useState(null)
     const { axios, user, setShowUserLogin } = useAppContext()
 
     const fetchMyOrders = async () => {
@@ -15,6 +16,26 @@ const MyOrders = () => {
             }
         } catch (error) {
             console.log(error);
+        }
+    }
+
+    const fetchShop = async () => {
+        try {
+            const { data } = await axios.get('/api/shop/settings')
+            if (data.success) setShop(data.settings)
+        } catch { /* silently fail */ }
+    }
+
+    const handleReachUs = () => {
+        if (!shop?.locationUrl || shop.locationUrl.trim() === '') {
+            toast.error('Store location not set yet. Please contact us directly.');
+            return;
+        }
+        try {
+            new URL(shop.locationUrl);
+            window.open(shop.locationUrl, '_blank');
+        } catch {
+            toast.error('Location link appears to be broken.');
         }
     }
 
@@ -41,6 +62,7 @@ const MyOrders = () => {
             setShowUserLogin(true);
         } else {
             fetchMyOrders()
+            fetchShop()
         }
     }, [user, setShowUserLogin])
 
@@ -52,6 +74,28 @@ const MyOrders = () => {
                 <h1 className='text-4xl font-bold font-outfit tracking-tight'>My Orders</h1>
                 <p className='text-text-muted'>Track and manage your recent print requests</p>
             </div>
+
+            {/* Store Info Banner */}
+            {shop && (
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-gradient-to-r from-blue-50 to-slate-50 border border-blue-100 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">🏪</div>
+                            <div>
+                                <p className="font-bold text-sm font-outfit">{shop.name}</p>
+                                <p className="text-xs text-text-muted">{shop.address}</p>
+                                {shop.phone && <p className="text-xs text-text-muted">📞 Cell: {shop.phone}</p>}
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleReachUs}
+                            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 transition-all whitespace-nowrap flex-shrink-0"
+                        >
+                            📍 Reach Us
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="max-w-4xl mx-auto space-y-8">
                 {myOrders.length === 0 ? (

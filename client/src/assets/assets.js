@@ -1,10 +1,4 @@
 import logo from "./logo.svg";
-import Banners1 from "./Banners1.JPG";
-import Banners2 from "./Banners2.JPG";
-import Banners3 from "./Banners3.JPG";
-import Banners4 from "./Banners4.JPG";
-import rubber_stamp from "./rubber_stamp.jpg";
-import anbu_card from "./anbu_card.jpg";
 import search_icon from "./search_icon.svg";
 import remove_icon from "./remove_icon.svg";
 import arrow_right_icon_colored from "./arrow_right_icon_colored.svg";
@@ -75,6 +69,18 @@ import vanilla_muffins_image from "./vanilla_muffins_image.png";
 import quinoa_image from "./quinoa_image.png";
 import brown_rice_image from "./brown_rice_image.png";
 import barley_image from "./barley_image.png";
+import Banners1 from "./Banners1.JPG";
+import Banners2 from "./Banners2.JPG";
+import Banners3 from "./Banners3.JPG";
+import Banners4 from "./Banners4.JPG";
+import rubber_stamp from "./rubber_stamp.jpg";
+import anbu_card from "./anbu_card.jpg";
+import bw_print_icon from "./BW copy.jpg";
+import color_print_icon from "./colour copy.jpg";
+import money_saver_icon from "./Money saver copy.jpg";
+import standard_print_icon from "./page per sheet standart copy.jpg";
+import spiral_binding_icon from "./spiral copy.jpg";
+import chart_binding_icon from "./chart copy.jpg";
 
 export const assets = {
   logo,
@@ -110,6 +116,12 @@ export const assets = {
   Banners4,
   rubber_stamp,
   anbu_card,
+  bw_print_icon,
+  color_print_icon,
+  money_saver_icon,
+  standard_print_icon,
+  spiral_binding_icon,
+  chart_binding_icon,
 };
 
 export const categories = [

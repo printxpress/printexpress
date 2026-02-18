@@ -68,40 +68,48 @@ const MainBanner = () => {
           <div className="relative z-10 p-0 md:p-4 bg-transparent lg:bg-slate-50/50 rounded-[40px] border-none lg:border-white/60">
             <div className="grid grid-cols-2 gap-4 md:gap-6">
               {/* Category 1: Black & White */}
-              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(59,130,246,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative">
+              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(59,130,246,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative flex flex-col items-center text-center">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-slate-500/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-slate-500/10 transition-colors"></div>
-                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 group-hover:rotate-6 transition-transform relative z-10">📄</div>
-                <div className="relative z-10">
+                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform relative z-10">
+                  <img src={assets.bw_print_icon} alt="B&W" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative z-10 w-full">
                   <h3 className="font-bold font-outfit text-slate-900 text-sm mb-1">B&W</h3>
-                  <p className="text-slate-900 font-black text-xl leading-none">₹0.75 <span className="text-[10px] font-bold text-slate-400">/pg</span></p>
+                  <p className="text-slate-900 font-black text-xl leading-none">₹0.50 <span className="text-[10px] font-bold text-slate-400">/pg</span></p>
                 </div>
               </Link>
 
               {/* Category 2: Color Printing */}
-              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(249,115,22,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative">
+              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(249,115,22,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative flex flex-col items-center text-center">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-blue-500/10 transition-colors"></div>
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 group-hover:rotate-6 transition-transform relative z-10">🌈</div>
-                <div className="relative z-10">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform relative z-10">
+                  <img src={assets.color_print_icon} alt="Color" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative z-10 w-full">
                   <h3 className="font-bold font-outfit text-slate-900 text-sm mb-1">Color</h3>
                   <p className="text-blue-700 font-black text-xl leading-none">₹8 <span className="text-[10px] font-bold text-slate-400">/pg</span></p>
                 </div>
               </Link>
 
               {/* Category 3: Spiral Binding */}
-              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(234,88,12,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative">
+              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(234,88,12,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative flex flex-col items-center text-center">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-orange-500/10 transition-colors"></div>
-                <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 group-hover:rotate-6 transition-transform relative z-10">📚</div>
-                <div className="relative z-10">
+                <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform relative z-10">
+                  <img src={assets.spiral_binding_icon} alt="Spiral" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative z-10 w-full">
                   <h3 className="font-bold font-outfit text-slate-900 text-sm mb-1">Spiral</h3>
                   <p className="text-orange-600 font-black text-xl leading-none">₹15 <span className="text-[10px] font-bold text-slate-400">/book</span></p>
                 </div>
               </Link>
 
               {/* Category 4: Chart Binding */}
-              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(147,51,234,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative">
+              <Link to="/print" className="group bg-white rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50 space-y-4 hover:shadow-[0_20px_50px_rgb(147,51,234,0.15)] transition-all duration-500 hover:-translate-y-2 active:scale-95 overflow-hidden relative flex flex-col items-center text-center">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-purple-500/10 transition-colors"></div>
-                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 group-hover:rotate-6 transition-transform relative z-10">📊</div>
-                <div className="relative z-10">
+                <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-100 group-hover:scale-105 transition-transform relative z-10">
+                  <img src={assets.chart_binding_icon} alt="Chart" className="w-full h-full object-cover" />
+                </div>
+                <div className="relative z-10 w-full">
                   <h3 className="font-bold font-outfit text-slate-900 text-sm mb-1">Chart Binding</h3>
                   <p className="text-purple-600 font-black text-xl leading-none">₹10 <span className="text-[10px] font-bold text-slate-400">/unit</span></p>
                 </div>

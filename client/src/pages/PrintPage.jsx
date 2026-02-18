@@ -5,9 +5,10 @@ import toast from 'react-hot-toast';
 import PrintExpressLogo from '../components/PrintExpressLogo';
 import PrintingAnimation from '../components/PrintingAnimation';
 import { detectDocument, formatFileSize, getDocumentIcon } from '../utils/documentDetection';
+import { assets } from '../assets/assets';
 
 const PrintPage = () => {
-    const { axios, user, services } = useAppContext();
+    const { axios, user, services, shopSettings } = useAppContext();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [files, setFiles] = useState([]);
@@ -17,7 +18,7 @@ const PrintPage = () => {
         side: 'Single',
         paperSize: 'A4',
         copies: 1,
-        binding: 'None',
+        binding: 'Loose Papers',
         orientation: 'Portrait',
         layout: 'Full',
         bindingQuantity: 1,
@@ -30,17 +31,33 @@ const PrintPage = () => {
 
     // Smart Binding Logic
     useEffect(() => {
-        if (options.copies >= 20 && options.binding === 'None') {
+        if (options.copies >= 20 && options.binding === 'Loose Papers') {
             setOptions(prev => ({ ...prev, binding: 'Spiral', bindingQuantity: options.copies }));
             toast("📦 Large order! Automatically added Spiral Binding for you.", {
                 icon: '💡',
                 style: { borderRadius: '10px', background: '#333', color: '#fff' }
             });
-        } else if (options.binding !== 'None') {
+        } else if (options.binding !== 'Loose Papers') {
             // Sync binding quantity with copies
             setOptions(prev => ({ ...prev, bindingQuantity: options.copies }));
         }
     }, [options.copies, options.binding]);
+
+    // Auto-reset Staple if sheets exceed 50
+    useEffect(() => {
+        const docPgs = fileMetadata.reduce((sum, meta) => sum + (meta.pageCount || 0), 0);
+        const totPgs = options.pageRangeType === 'All' ? docPgs : calculateCustomPageCount(options.customPages);
+        const effPgs = options.pagesPerSheet === 2 ? Math.ceil(totPgs / 2) : totPgs;
+        const bSheets = options.side === 'Double' ? Math.ceil(effPgs / 2) : effPgs;
+        const totalSheets = bSheets * options.copies;
+        if (options.binding === 'Staple' && totalSheets > 50) {
+            setOptions(prev => ({ ...prev, binding: 'Loose Papers' }));
+            toast('📌 Staple binding is only available for ≤50 sheets. Switched to Loose Papers.', {
+                icon: '⚠️',
+                style: { borderRadius: '10px', background: '#333', color: '#fff' }
+            });
+        }
+    }, [fileMetadata, options.copies, options.side, options.pagesPerSheet, options.pageRangeType, options.customPages, options.binding]);
 
     const [stepLoading, setStepLoading] = useState(false);
     const [delivery, setDelivery] = useState({
@@ -179,10 +196,22 @@ const PrintPage = () => {
         const printCharge = printingCharge;
 
         let bindBase = 0;
-        if (options.binding === 'Spiral') bindBase = rules.additional?.binding || 15;
-        else if (options.binding === 'Chart') bindBase = rules.additional?.chart_binding || 10;
+        if (options.binding === 'Spiral') {
+            bindBase = options.paperSize === 'A3' ? 40 : (rules.additional?.binding || 15);
+        } else if (options.binding === 'Chart') {
+            bindBase = options.paperSize === 'A3' ? 20 : (rules.additional?.chart_binding || 10);
+        } else if (options.binding === 'Staple') {
+            bindBase = rules.additional?.staple_binding || 0.30;
+            // Staple is per-sheet, not per-copy
+        }
 
-        const bindCharge = bindBase * (options.bindingQuantity || 1);
+        let bindCharge;
+        if (options.binding === 'Staple') {
+            // Staple: ₹0.30 per sheet (total sheets across all copies)
+            bindCharge = bindBase * (billingSheets * options.copies);
+        } else {
+            bindCharge = bindBase * (options.bindingQuantity || 1);
+        }
 
         // Tiered Delivery Logic (Deferred until Step 4 and Pincode provided)
         let deliveryCharge = 0;
@@ -192,11 +221,12 @@ const PrintPage = () => {
         let bindWeight = 0;
         if (options.binding === 'Spiral') bindWeight = 0.1 * (options.bindingQuantity || 1);
         else if (options.binding === 'Chart') bindWeight = 0.05 * (options.bindingQuantity || 1);
+        else if (options.binding === 'Staple') bindWeight = 0.01 * (options.bindingQuantity || 1);
 
         const totalSheets = billingSheets * (options.copies || 1);
 
-        // Weight Calculation: 1 kg per 200 sheets (rounded up)
-        const calcWeight = Math.ceil(totalSheets / 200) + Math.ceil(bindWeight);
+        // Weight Calculation: paper only (1 kg per 200 sheets, rounded up)
+        const calcWeight = Math.ceil(totalSheets / 200);
 
         // New Delivery Charge Logic (Tamil Nadu / General)
         if (fulfillment === 'delivery' && hasValidPincode) {
@@ -386,6 +416,10 @@ const PrintPage = () => {
 
     const docPages = fileMetadata.reduce((sum, meta) => sum + (meta.pageCount || 0), 0);
     const totalPages = options.pageRangeType === 'All' ? docPages : calculateCustomPageCount(options.customPages);
+    const effectivePages = options.pagesPerSheet === 2 ? Math.ceil(totalPages / 2) : totalPages;
+    const billingSheets = options.side === 'Double' ? Math.ceil(effectivePages / 2) : effectivePages;
+    const totalBillingSheets = billingSheets * options.copies;
+    const canStaple = totalBillingSheets <= 50;
 
     return (
         <div className="py-12 max-w-6xl mx-auto space-y-12">
@@ -432,12 +466,15 @@ const PrintPage = () => {
                                 <span className="text-text-muted">Total Pages ({options.side} Sided)</span>
                                 <span className="font-bold text-blue-800">{totalPages * options.copies} pg</span>
                             </div>
-                            {options.side === 'Double' && (
-                                <div className="flex justify-between items-center pb-2 border-b border-blue-100/50 italic animate-in fade-in slide-in-from-top-1 duration-300">
-                                    <span className="text-blue-600 font-semibold">Billable Sheets</span>
-                                    <span className="font-bold text-blue-800">{Math.ceil(totalPages / 2) * options.copies} sheets</span>
+                            <div className="flex justify-between items-center pb-2 border-b border-blue-100/50">
+                                <span className="text-text-muted">Billable Sheets</span>
+                                <div className="text-right">
+                                    <span className="font-bold text-blue-800">{billingSheets * options.copies} sheets</span>
+                                    {options.pagesPerSheet === 2 && (
+                                        <p className="text-[10px] text-green-600 font-bold">50% Money Saver Applied</p>
+                                    )}
                                 </div>
-                            )}
+                            </div>
 
 
                             {/* Detailed Summary only in Step 4 */}
@@ -461,9 +498,9 @@ const PrintPage = () => {
                                     <span>Printing Charge</span>
                                     <span>₹{pricing.basePrint.toFixed(2)}</span>
                                 </div>
-                                {options.binding !== 'None' && (
+                                {(options.binding !== 'Loose Papers') && (
                                     <div className="flex justify-between text-text-muted">
-                                        <span>Binding ({options.bindingQuantity}x)</span>
+                                        <span>Binding {options.binding === 'Staple' ? `(${billingSheets * options.copies} sheets)` : `(${options.bindingQuantity}x)`}</span>
                                         <span>₹{pricing.binding.toFixed(2)}</span>
                                     </div>
                                 )}
@@ -617,24 +654,30 @@ const PrintPage = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-text-muted">Printing Mode</label>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-4">
                                         <button
                                             onClick={() => setOptions({ ...options, mode: 'B/W' })}
-                                            className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold ${options.mode === 'B/W'
-                                                ? 'bg-gradient-to-br from-blue-600 to-blue-800 text-white border-blue-800 shadow-lg'
-                                                : 'bg-white border-border hover:border-blue-500'
+                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'B/W'
+                                                ? 'bg-blue-50 border-blue-600 shadow-md ring-2 ring-blue-600/20'
+                                                : 'bg-white border-slate-100 hover:border-blue-300'
                                                 }`}
                                         >
-                                            B/W Print
+                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100">
+                                                <img src={assets.bw_print_icon} alt="B/W" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                            </div>
+                                            <span className={`text-xs ${options.mode === 'B/W' ? 'text-blue-800' : 'text-slate-600'}`}>B/W Print</span>
                                         </button>
                                         <button
                                             onClick={() => setOptions({ ...options, mode: 'Color' })}
-                                            className={`flex-1 py-3 rounded-xl border-2 transition-all font-semibold ${options.mode === 'Color'
-                                                ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white border-orange-600 shadow-lg'
-                                                : 'bg-white border-border hover:border-orange-500'
+                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'Color'
+                                                ? 'bg-orange-50 border-orange-600 shadow-md ring-2 ring-orange-600/20'
+                                                : 'bg-white border-slate-100 hover:border-orange-300'
                                                 }`}
                                         >
-                                            Color Print
+                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100">
+                                                <img src={assets.color_print_icon} alt="Color" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                            </div>
+                                            <span className={`text-xs ${options.mode === 'Color' ? 'text-orange-800' : 'text-slate-600'}`}>Color Print</span>
                                         </button>
                                     </div>
                                 </div>
@@ -689,36 +732,40 @@ const PrintPage = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-text-muted">Pages per Sheet</label>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-4">
                                         <button
                                             onClick={() => setOptions({ ...options, pagesPerSheet: 1 })}
-                                            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left group ${options.pagesPerSheet === 1
-                                                ? 'bg-blue-50 border-blue-600'
-                                                : 'bg-white border-border hover:border-blue-300'
+                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.pagesPerSheet === 1
+                                                ? 'bg-blue-50 border-blue-600 shadow-md'
+                                                : 'bg-white border-slate-100 hover:border-blue-300'
                                                 }`}
                                         >
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className={`font-bold text-sm ${options.pagesPerSheet === 1 ? 'text-blue-800' : 'text-gray-700'}`}>Standard</span>
-                                                {options.pagesPerSheet === 1 && <span className="text-blue-600 text-lg">✓</span>}
+                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100 relative">
+                                                <img src={assets.standard_print_icon} alt="Standard" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                {options.pagesPerSheet === 1 && <div className="absolute top-2 right-2 bg-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">✓</div>}
                                             </div>
-                                            <p className="text-[10px] text-text-muted leading-tight">1 page per side. Best for readability.</p>
+                                            <div className="text-center">
+                                                <span className={`text-[11px] block ${options.pagesPerSheet === 1 ? 'text-blue-800' : 'text-slate-600'}`}>Standard</span>
+                                                <span className="text-[9px] text-slate-400 font-normal">1 Page / Side</span>
+                                            </div>
                                         </button>
 
                                         <button
-                                            onClick={() => setOptions({ ...options, pagesPerSheet: 2 })}
-                                            className={`flex-1 p-3 rounded-xl border-2 transition-all text-left group relative overflow-hidden ${options.pagesPerSheet === 2
-                                                ? 'bg-green-50 border-green-600'
-                                                : 'bg-white border-border hover:border-green-300'
+                                            onClick={() => setOptions({ ...options, pagesPerSheet: 2, orientation: 'Landscape' })}
+                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group relative overflow-hidden ${options.pagesPerSheet === 2
+                                                ? 'bg-green-50 border-green-600 shadow-md'
+                                                : 'bg-white border-slate-100 hover:border-green-300'
                                                 }`}
                                         >
-                                            <div className="absolute top-0 right-0 bg-green-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
-                                                SAVE 50%
+                                            <div className="absolute top-0 right-0 bg-green-600 text-white text-[8px] px-2 py-0.5 rounded-bl-lg z-10">SAVE 50%</div>
+                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100 relative">
+                                                <img src={assets.money_saver_icon} alt="Money Saver" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                {options.pagesPerSheet === 2 && <div className="absolute top-2 right-2 bg-green-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">✓</div>}
                                             </div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className={`font-bold text-sm ${options.pagesPerSheet === 2 ? 'text-green-800' : 'text-gray-700'}`}>Money Saver</span>
-                                                {options.pagesPerSheet === 2 && <span className="text-green-600 text-lg">✓</span>}
+                                            <div className="text-center">
+                                                <span className={`text-[11px] block ${options.pagesPerSheet === 2 ? 'text-green-800' : 'text-slate-600'}`}>Money Saver</span>
+                                                <span className="text-[9px] text-slate-400 font-normal">2 Pages / Side · Auto Landscape</span>
                                             </div>
-                                            <p className="text-[10px] text-text-muted leading-tight">2 pages per side. Suitable for Materials.</p>
                                         </button>
                                     </div>
                                 </div>
@@ -731,7 +778,13 @@ const PrintPage = () => {
                                         >
                                             −
                                         </button>
-                                        <span className="text-2xl font-bold w-12 text-center">{options.copies}</span>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={options.copies}
+                                            onChange={(e) => setOptions({ ...options, copies: Math.max(1, parseInt(e.target.value) || 1) })}
+                                            className="text-2xl font-bold w-16 text-center bg-transparent border-none focus:ring-0 p-0 appearance-none m-0"
+                                        />
                                         <button
                                             onClick={() => setOptions({ ...options, copies: options.copies + 1 })}
                                             className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 flex items-center justify-center font-bold text-blue-800 transition-all"
@@ -764,26 +817,74 @@ const PrintPage = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-text-muted">Binding</label>
-                                    <div className="flex flex-col gap-2">
-                                        <select value={options.binding} onChange={(e) => setOptions({ ...options, binding: e.target.value })} className="input-field">
-                                            <option value="None">No Binding</option>
-                                            <option value="Spiral">Spiral Binding (+₹15)</option>
-                                            <option value="Chart">Chart Binding (+₹150)</option>
-                                        </select>
-                                        {options.binding !== 'None' && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <label className="text-xs font-bold text-text-muted">Quantity for Binding:</label>
+                                    <label className="text-sm font-semibold text-text-muted">Binding Style</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        <button
+                                            onClick={() => setOptions({ ...options, binding: 'Loose Papers' })}
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 ${options.binding === 'Loose Papers'
+                                                ? 'bg-slate-50 border-slate-600'
+                                                : 'bg-white border-slate-100 hover:border-slate-300'
+                                                }`}
+                                        >
+                                            <div className="w-8 h-8 flex items-center justify-center text-xl">📄</div>
+                                            <span className="text-[10px] text-center">Loose Papers</span>
+                                        </button>
+                                        <button
+                                            onClick={() => canStaple && setOptions({ ...options, binding: 'Staple' })}
+                                            disabled={!canStaple}
+                                            title={!canStaple ? `Staple only available for ≤50 sheets (current: ${totalBillingSheets})` : 'Staple Binding'}
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 ${!canStaple
+                                                ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200'
+                                                : options.binding === 'Staple'
+                                                    ? 'bg-purple-50 border-purple-600'
+                                                    : 'bg-white border-slate-100 hover:border-purple-300'
+                                                }`}
+                                        >
+                                            <div className="w-8 h-8 flex items-center justify-center text-xl">📌</div>
+                                            <span className="text-[10px] text-center">Staple</span>
+                                            {!canStaple && <span className="text-[8px] text-red-400">&gt;50 sheets</span>}
+                                        </button>
+                                        <button
+                                            onClick={() => setOptions({ ...options, binding: 'Spiral' })}
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group ${options.binding === 'Spiral'
+                                                ? 'bg-blue-50 border-blue-600'
+                                                : 'bg-white border-slate-100 hover:border-blue-300'
+                                                }`}
+                                        >
+                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                                <img src={assets.spiral_binding_icon} alt="Spiral" className="w-full h-full object-cover" />
+                                            </div>
+                                            <span className="text-[10px]">Spiral</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setOptions({ ...options, binding: 'Chart' })}
+                                            className={`p-2 rounded-xl border-2 transition-all font-bold flex flex-col items-center gap-1 group ${options.binding === 'Chart'
+                                                ? 'bg-orange-50 border-orange-600'
+                                                : 'bg-white border-slate-100 hover:border-orange-300'
+                                                }`}
+                                        >
+                                            <div className="w-8 h-8 rounded overflow-hidden">
+                                                <img src={assets.chart_binding_icon} alt="Chart" className="w-full h-full object-cover" />
+                                            </div>
+                                            <span className="text-[10px]">Chart</span>
+                                        </button>
+                                    </div>
+                                    {options.binding !== 'Loose Papers' && options.binding !== 'Staple' && (
+                                        <div className="flex items-center gap-2 mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                            <label className="text-[10px] font-bold text-text-muted uppercase">Binding Qty:</label>
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => setOptions({ ...options, bindingQuantity: Math.max(1, options.bindingQuantity - 1) })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">-</button>
                                                 <input
                                                     type="number"
                                                     min="1"
                                                     value={options.bindingQuantity}
-                                                    onChange={(e) => setOptions({ ...options, bindingQuantity: Number(e.target.value) })}
-                                                    className="w-20 px-2 py-1 border border-border rounded"
+                                                    onChange={(e) => setOptions({ ...options, bindingQuantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                                                    className="text-xs font-bold w-8 text-center bg-transparent border-b border-slate-300 focus:border-blue-500 focus:outline-none p-0"
                                                 />
+                                                <button onClick={() => setOptions({ ...options, bindingQuantity: options.bindingQuantity + 1 })} className="w-6 h-6 rounded bg-white border border-slate-200 flex items-center justify-center text-xs">+</button>
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="sm:col-span-2 space-y-2">
                                     <label className="text-sm font-semibold text-text-muted">Additional Notes</label>
@@ -991,8 +1092,13 @@ const PrintPage = () => {
                             {fulfillment === 'pickup' && (
                                 <div className="bg-green-50 p-5 rounded-xl border border-green-200 space-y-2">
                                     <p className="font-bold text-green-800">📍 Pickup Location</p>
-                                    <p className="text-sm text-green-700">Print Express Store</p>
-                                    <p className="text-xs text-green-600">Coimbatore, Tamil Nadu</p>
+                                    <p className="text-sm text-green-700">{shopSettings?.name || "Print Express Store"}</p>
+                                    <p className="text-xs text-green-600">{shopSettings?.address || "Coimbatore, Tamil Nadu"}</p>
+                                    {shopSettings?.locationUrl && (
+                                        <a href={shopSettings.locationUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline font-bold block mt-1">
+                                            View on Map
+                                        </a>
+                                    )}
                                     <p className="text-xs text-text-muted mt-2">You will receive a notification when your order is ready for pickup.</p>
                                 </div>
                             )}

@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema({
         side: { type: String, enum: ['Single', 'Double'] },
         paperSize: { type: String, enum: ['A4', 'A3'], default: 'A4' },
         copies: Number,
-        binding: { type: String, enum: ['None', 'Spiral', 'Staple', 'Hard', 'Chart'] },
+        binding: { type: String, enum: ['Loose Papers', 'Spiral', 'Staple', 'Hard', 'Chart'], default: 'Loose Papers' },
         bindingQuantity: { type: Number, default: 1 }
     },
     pricing: {

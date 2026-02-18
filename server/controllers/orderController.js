@@ -107,17 +107,23 @@ export const placePrintOrder = async (req, res) => {
         let bindingCharge = 0;
         let bindingWeight = 0;
         if (printOptions.binding === 'Spiral') {
-            bindingCharge = (rules.additional.binding || 15) * (printOptions.bindingQuantity || 1);
+            const spiralRate = isA3 ? 40 : (rules.additional.binding || 15);
+            bindingCharge = spiralRate * (printOptions.bindingQuantity || 1);
             bindingWeight = 0.1 * (printOptions.bindingQuantity || 1);
         } else if (printOptions.binding === 'Chart') {
-            bindingCharge = (rules.additional.chart_binding || 10) * (printOptions.bindingQuantity || 1);
+            const chartRate = isA3 ? 20 : (rules.additional.chart_binding || 10);
+            bindingCharge = chartRate * (printOptions.bindingQuantity || 1);
             bindingWeight = 0.05 * (printOptions.bindingQuantity || 1);
+        } else if (printOptions.binding === 'Staple') {
+            const stapleRate = rules.additional?.staple_binding || 0.30;
+            bindingCharge = stapleRate * (billingSheets * (printOptions.copies || 1));
+            bindingWeight = 0.01 * (printOptions.bindingQuantity || 1);
         }
 
         const totalSheets = billingSheets * (printOptions.copies || 1);
 
-        // Weight Calculation: 1 kg per 200 sheets (rounded up)
-        const calcWeight = Math.ceil(totalSheets / 200) + Math.ceil(bindingWeight);
+        // Weight Calculation: paper only (1 kg per 200 sheets, rounded up)
+        const calcWeight = Math.ceil(totalSheets / 200);
 
         let deliveryCharge = 0;
         if (fulfillment.method === 'delivery') {
@@ -220,7 +226,7 @@ export const createPosOrder = async (req, res) => {
         // POS orders are immediately 'ready' or 'delivered'
         const order = await Order.create({
             userId: req.body.userId || undefined, // Use undefined for guest/direct sales
-            printOptions: { mode: 'B/W', side: 'Single', binding: 'None' }, // Default for POS items
+            printOptions: { mode: 'B/W', side: 'Single', binding: 'Loose Papers' }, // Default for POS items
             pricing: {
                 totalAmount,
                 printingCharge: totalAmount, // Flat allocation for POS
@@ -356,10 +362,16 @@ export const updateOrderAndRecalculate = async (req, res) => {
         } else if (printOptions.binding === 'Chart') {
             bindingCharge = (rules.additional.chart_binding || 10) * (printOptions.bindingQuantity || 1);
             bindingWeight = 0.05 * (printOptions.bindingQuantity || 1);
+        } else if (printOptions.binding === 'Staple') {
+            const stapleRate = rules.additional?.staple_binding || 0.30;
+            const bSheets = isDouble ? Math.ceil(totalPages / 2) : totalPages;
+            bindingCharge = stapleRate * (bSheets * (printOptions.copies || 1));
+            bindingWeight = 0.01 * (printOptions.bindingQuantity || 1);
         }
 
+
         const totalSheets = billingSheets * (printOptions.copies || 1);
-        const calcWeight = (totalSheets * 5 / 1000) + bindingWeight;
+        const calcWeight = (totalSheets * 5 / 1000);
 
         let deliveryCharge = 0;
         if (order.fulfillment.method === 'delivery') {
@@ -406,11 +418,11 @@ export const generateThermalBillPDF = async (req, res) => {
         if (!order) return res.json({ success: false, message: "Order not found" });
 
         const shop = await ShopSettings.findOne() || {
-            name: "Print Express",
-            address: "Print Express Store, Coimbatore",
-            phone: "+91 98765 43210",
-            email: "support@printexpress.com",
-            tagline: "Quality at Speed"
+            "name": "AnbuDigital",
+            "address": "Bengaluru Main Road, Theruvalluvar Nagar, Chengam 606701",
+            "phone": "+91 98949 57422",
+            "email": "support@printexpress.com",
+            "tagline": "Quality at Speed"
         };
 
         const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -484,7 +496,7 @@ export const generateThermalBillPDF = async (req, res) => {
             currentY += 20;
         });
 
-        if (order.printOptions.binding !== 'None') {
+        if (order.printOptions.binding !== 'Loose Papers') {
             doc.text(`Binding: ${order.printOptions.binding}`, 50, currentY);
             doc.text(`₹${order.pricing.bindingCharge.toFixed(2)}`, 450, currentY, { width: 100, align: 'right' });
             currentY += 20;

@@ -33,29 +33,16 @@ const port = process.env.PORT || 4000;
 await connectDB()
 await connectCloudinary()
 
-// Allow multiple origins
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
-    'https://printexpress.up.railway.app',
-    process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
-    process.env.CLIENT_URL // Explicitly allow user-defined client URL
+    'https://printexpress.up.railway.app'
 ].filter(Boolean);
 
 
-
-
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true); // allow mobile apps
-
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        } else {
-            return callback(new Error("Not allowed by CORS: " + origin));
-        }
-    },
+    origin: allowedOrigins,
     credentials: true
 }));
 

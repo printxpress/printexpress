@@ -80,34 +80,24 @@ const DeliveryEstimator = () => {
                         </p>
                     </div>
 
-                    {/* Volume Table */}
-                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-white/10 bg-white/5">
-                                    <th className="px-4 py-3 text-left font-bold text-slate-300">Page Volume</th>
-                                    <th className="px-4 py-3 text-right font-bold text-slate-300">Delivery Charge</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                <tr className={pageCount < 100 ? 'bg-blue-500/20' : ''}>
-                                    <td className="px-4 py-3 text-slate-400">&lt; 100 Pages</td>
-                                    <td className="px-4 py-3 text-right font-black text-blue-400">₹{pricingRules?.rules?.delivery_tiers?.tier_a || 40}</td>
-                                </tr>
-                                <tr className={pageCount >= 200 && pageCount < 500 ? 'bg-blue-500/20' : ''}>
-                                    <td className="px-4 py-3 text-slate-400">200 - 500 Pages</td>
-                                    <td className="px-4 py-3 text-right font-black text-blue-400">₹{pricingRules?.rules?.delivery_tiers?.tier_b || 60}</td>
-                                </tr>
-                                <tr className={pageCount >= 500 && pageCount < 1000 ? 'bg-blue-500/20' : ''}>
-                                    <td className="px-4 py-3 text-slate-400">500 - 1000 Pages</td>
-                                    <td className="px-4 py-3 text-right font-black text-blue-400">₹{pricingRules?.rules?.delivery_tiers?.tier_c || 80}</td>
-                                </tr>
-                                <tr className={pageCount >= 1000 ? 'bg-blue-500/20' : ''}>
-                                    <td className="px-4 py-3 text-slate-400">1000+ (Bulk)</td>
-                                    <td className="px-4 py-3 text-right font-black text-blue-400">₹{pricingRules?.rules?.delivery_tiers?.tier_d || 150}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 space-y-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-2xl">🚛</div>
+                            <div>
+                                <h4 className="font-bold text-white">Dynamic Pricing</h4>
+                                <p className="text-xs text-slate-400">Charges adjust based on weight & distance</p>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-400">Base Rate</span>
+                                <span className="text-blue-400 font-bold">₹35 / kg</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-slate-400">Bulk Discount</span>
+                                <span className="text-green-400 font-bold">Applied {'>'} 3kg</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -31,6 +31,13 @@ const Login = () => {
 
     const handleSendOtp = async (e) => {
         if (e) e.preventDefault();
+
+        // Indian Phone Number Validation
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+            return toast.error("Please enter a valid 10-digit Indian phone number.");
+        }
+
         setLoading(true);
         try {
             const { data } = await axios.post('/api/user/send-otp', { phone });

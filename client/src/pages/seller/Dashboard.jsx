@@ -83,7 +83,9 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Total Revenue</p>
-                        <img src={assets.cardicons3} alt="" className="w-8 h-8 object-contain" />
+                        <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center p-1.5 border border-green-100">
+                            <img src={assets.coin_icon} alt="Revenue" className="w-full h-full object-contain" />
+                        </div>
                     </div>
                     <p className="text-3xl font-bold font-outfit text-green-600">₹{totalRevenue.toLocaleString()}</p>
                     <p className="text-xs text-text-muted">{orders.length} orders total</p>
@@ -91,7 +93,9 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Print Online</p>
-                        <img src={assets.cardicons1} alt="" className="w-8 h-8 object-contain" />
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center p-1.5 border border-blue-100">
+                            <img src={assets.bw_print_icon} alt="Online" className="w-full h-full object-contain" />
+                        </div>
                     </div>
                     <p className="text-3xl font-bold font-outfit text-primary">{onlineOrdersCount}</p>
                     <p className="text-xs text-blue-600">{pendingOrders.length} pending</p>
@@ -99,7 +103,9 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">POS Sales</p>
-                        <img src={assets.cardicons2} alt="" className="w-8 h-8 object-contain" />
+                        <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center p-1.5 border border-purple-100">
+                            <img src={assets.cart_icon} alt="POS" className="w-full h-full object-contain" />
+                        </div>
                     </div>
                     <p className="text-3xl font-bold font-outfit text-purple-600">{posOrdersCount}</p>
                     <p className="text-xs text-purple-600">Walk-in transactions</p>
@@ -107,7 +113,9 @@ const Dashboard = () => {
                 <div className="bg-white p-5 rounded-2xl border border-border space-y-2 hover:shadow-lg transition-shadow">
                     <div className="flex items-center justify-between">
                         <p className="text-[10px] text-text-muted font-semibold uppercase">Customers</p>
-                        <img src={assets.cardicons4} alt="" className="w-8 h-8 object-contain" />
+                        <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center p-1.5 border border-orange-100">
+                            <img src={assets.profile_icon} alt="Customers" className="w-full h-full object-contain" />
+                        </div>
                     </div>
                     <p className="text-3xl font-bold font-outfit text-orange-600">{customers.length}</p>
                     <p className="text-xs text-orange-600">Registered users</p>

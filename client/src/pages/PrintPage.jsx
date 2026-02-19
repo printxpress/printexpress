@@ -15,7 +15,7 @@ const PrintPage = () => {
     const [fileMetadata, setFileMetadata] = useState([]);
     const [options, setOptions] = useState({
         mode: 'B/W',
-        side: 'Single',
+        side: 'Double',
         paperSize: 'A4',
         copies: 1,
         binding: 'Loose Papers',
@@ -575,7 +575,7 @@ const PrintPage = () => {
                             <div className="grid grid-cols-3 gap-3">
                                 <label className="border-2 border-dashed border-blue-300 rounded-2xl p-4 flex flex-col items-center gap-2 cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group">
                                     <div className="w-16 h-16 md:w-12 md:h-12 flex items-center justify-center">
-                                        <img src={assets.cardicons5} alt="PDF" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
+                                        <img src={assets.pdf_icon} alt="PDF" className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
                                     </div>
                                     <span className="text-[10px] md:text-[9px] font-bold text-center uppercase">PDF</span>
                                     <input type="file" className="hidden" multiple accept=".pdf,application/pdf" onChange={handleFileChange} />
@@ -657,28 +657,32 @@ const PrintPage = () => {
                                         <button
                                             type="button"
                                             onClick={() => setOptions({ ...options, mode: 'B/W' })}
-                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'B/W'
-                                                ? 'bg-blue-50 border-blue-600 shadow-md ring-2 ring-blue-600/20'
-                                                : 'bg-white border-slate-100 hover:border-blue-300'
+                                            className={`flex-1 p-3 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-3 group ${options.mode === 'B/W'
+                                                ? 'bg-blue-50 border-blue-600 shadow-lg ring-2 ring-blue-600/20 scale-[1.02]'
+                                                : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-md'
                                                 }`}
                                         >
-                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100">
-                                                <img src={assets.bw_print_icon} alt="B/W" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                            <div className="w-full aspect-square rounded-xl overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center p-2">
+                                                <img src={assets.bw_print_icon} alt="B/W" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                                             </div>
-                                            <span className={`text-xs ${options.mode === 'B/W' ? 'text-blue-800' : 'text-slate-600'}`}>B/W Print</span>
+                                            <div className="text-center">
+                                                <span className={`text-[11px] font-black uppercase tracking-widest ${options.mode === 'B/W' ? 'text-blue-800' : 'text-slate-500'}`}>B/W Print</span>
+                                            </div>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setOptions({ ...options, mode: 'Color' })}
-                                            className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.mode === 'Color'
-                                                ? 'bg-orange-50 border-orange-600 shadow-md ring-2 ring-orange-600/20'
-                                                : 'bg-white border-slate-100 hover:border-orange-300'
+                                            className={`flex-1 p-3 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-3 group ${options.mode === 'Color'
+                                                ? 'bg-orange-50 border-orange-600 shadow-lg ring-2 ring-orange-600/20 scale-[1.02]'
+                                                : 'bg-white border-slate-100 hover:border-orange-300 hover:shadow-md'
                                                 }`}
                                         >
-                                            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-100">
-                                                <img src={assets.color_print_icon} alt="Color" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                            <div className="w-full aspect-square rounded-xl overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center p-2">
+                                                <img src={assets.color_print_icon} alt="Color" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                                             </div>
-                                            <span className={`text-xs ${options.mode === 'Color' ? 'text-orange-800' : 'text-slate-600'}`}>Color Print</span>
+                                            <div className="text-center">
+                                                <span className={`text-[11px] font-black uppercase tracking-widest ${options.mode === 'Color' ? 'text-orange-800' : 'text-slate-500'}`}>Color Print</span>
+                                            </div>
                                         </button>
                                     </div>
                                 </div>
@@ -738,7 +742,7 @@ const PrintPage = () => {
                                     <div className="flex gap-4">
                                         <button
                                             type="button"
-                                            onClick={() => setOptions({ ...options, pagesPerSheet: 1 })}
+                                            onClick={() => setOptions({ ...options, pagesPerSheet: 1, orientation: 'Portrait' })}
                                             className={`flex-1 p-2 rounded-2xl border-2 transition-all font-bold flex flex-col items-center gap-2 group ${options.pagesPerSheet === 1
                                                 ? 'bg-blue-50 border-blue-600 shadow-md'
                                                 : 'bg-white border-slate-100 hover:border-blue-300'
@@ -852,7 +856,7 @@ const PrintPage = () => {
                                                 }`}
                                         >
                                             <div className="w-10 h-10 md:w-8 md:h-8 rounded overflow-hidden">
-                                                <img src={assets.cardicons7} alt="Staple" className="w-full h-full object-contain" />
+                                                <img src={assets.staple_icon} alt="Staple" className="w-full h-full object-contain" />
                                             </div>
                                             <span className="text-[11px] md:text-[10px] text-center">Staple</span>
                                             {!canStaple && <span className="text-[8px] text-red-400">&gt;50 sheets</span>}

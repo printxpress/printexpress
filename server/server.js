@@ -21,7 +21,6 @@ import shopRouter from './routes/shopRoute.js';
 import billingRouter from './routes/billingRoute.js';
 import systemRouter from './routes/systemRoute.js';
 import bannerRouter from './routes/bannerRoute.js';
-
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -46,11 +45,23 @@ const allowedOrigins = [
 
 
 
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // allow mobile apps
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error("Not allowed by CORS: " + origin));
+        }
+    },
+    credentials: true
+}));
+
 // Middleware configuration
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: allowedOrigins, credentials: true }));
-
 // API Routes
 app.use('/api/user', userRouter)
 app.use('/api/seller', sellerRouter)

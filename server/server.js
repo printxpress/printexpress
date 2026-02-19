@@ -37,7 +37,9 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
-    'https://printexpress.up.railway.app'
+    'https://printexpress.up.railway.app',
+    'https://printexpress.in',
+    'https://www.printexpress.in'
 ].filter(Boolean);
 
 
